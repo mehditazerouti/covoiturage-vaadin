@@ -27,6 +27,7 @@
         <artifactId>spring-boot-devtools</artifactId>
         <optional>true</optional>
     </dependency>
+	
 	<!-- Hibernate (inclus via spring-data-jpa) -->
 	<!-- Vaadin -->
 	<dependency>
