@@ -57,6 +57,6 @@ cd covoiturage-vaadin/backend
 - Respecter le style Java (formatting), ajouter tests unitaires
 
 ## Auteurs
-- Mehdi T. (et binôme)
+- Mehdi Tazerouti et Salim Bouskine
 
 ---
