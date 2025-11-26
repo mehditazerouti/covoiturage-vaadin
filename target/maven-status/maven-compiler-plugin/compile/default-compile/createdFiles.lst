@@ -1,4 +1,3 @@
-com/example/covoiturage_vaadin/repository/StudentRepository.class
-com/example/covoiturage_vaadin/App.class
-com/example/covoiturage_vaadin/ui/StudentView.class
-com/example/covoiturage_vaadin/Student.class
+com\example\covoiturage_vaadin\App.class
+com\example\covoiturage_vaadin\infrastructure\adapter\StudentJpaRepository.class
+com\example\covoiturage_vaadin\domain\model\Student.class

@@ -1,4 +1,4 @@
-package com.example.covoiturage_vaadin;
+package com.example.covoiturage_vaadin.domain.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
