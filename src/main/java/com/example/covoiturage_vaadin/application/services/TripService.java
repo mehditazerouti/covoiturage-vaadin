@@ -43,16 +43,14 @@ public class TripService {
     }
     
     // Cas d'usage : Rechercher un trajet
-    // @Transactional garantit que la relation Driver (LAZY) est chargée avant la fin de la méthode.
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Trip> searchTrips(String destination) {
         // Logique de recherche (peut inclure des règles du domaine/rules ici)
         return tripRepository.findTripsByDestination(destination);
     }
-    
+
     // Obtenir tous les trajets pour l'affichage initial
-    // @Transactional garantit que la relation Driver (LAZY) est chargée avant que la vue n'y accède.
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Trip> findAllTrips() {
         return tripRepository.findAll();
     }

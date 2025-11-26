@@ -17,12 +17,12 @@ public class StudentService {
         this.studentRepository = studentRepository;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Optional<Student> getStudentById(Long id) {
         return studentRepository.findById(id);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Student> getAllStudents() {
         return studentRepository.findAll();
     }

@@ -8,9 +8,11 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 @Route("")
+@PageTitle("Ajouter des etudiants")
 public class StudentView extends VerticalLayout {
 	// ANCIEN : private final StudentJpaRepository repo;
 	private final StudentService studentService; // <-- Injectez le Service

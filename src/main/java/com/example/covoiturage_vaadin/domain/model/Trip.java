@@ -25,7 +25,7 @@ public class Trip {
     }
 
     // Le conducteur du trajet (relation ManyToOne vers l'entité Student)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     private Student driver; 
 
     private String departureAddress;

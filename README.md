@@ -1,62 +1,68 @@
-# covoiturage-vaadinoot)
+# Covoiturage Vaadin
 
-**Projet universitaire — Module Programmation Back-end & Front-end**
+**Projet universitaire — Application de covoiturage pour étudiants**
 
 ## Description
-Application de mise en relation pour le covoiturage étudiant (MVP) :
-- Gestion des profils étudiants (nom, email, code étudiant)
-- Proposer / rechercher des trajets (départ, destination, horaire, nb places)
-- Mise en relation (affichage coordonnées / envoi message simulé)
+Application de covoiturage développée avec Spring Boot et Vaadin, suivant une architecture hexagonale.
 
-## Stack technique (MVP)
-- Frontend : Vaadin 24 (Java)
-- Backend : Spring Boot 3 + Spring Data JPA (Hibernate)
-- Base de données : PostgreSQL (prod) / H2 (local)
-- Build : Maven
-- Container : Docker (docker-compose)
-- CI : GitHub Actions (pipeline build → tests → image)
+Fonctionnalités :
+- Gestion des étudiants (CRUD)
+- Proposer un trajet (départ, destination, horaire, places)
+- Rechercher des trajets par destination
+- Réserver une place (à venir)
 
-## Structure du dépôt
-```
-/covoiturage-vaadin
- ├─ backend/             # Spring Boot app (Vaadin peut être ici)
- ├─ infra/               # docker-compose, manifests k8s (optionnel)
- ├─ docs/                # architecture, diagrammes, livrables
- ├─ .github/             # workflows CI
- └─ README.md
-```
+## Stack technique
+- **Frontend** : Vaadin 24.2.0
+- **Backend** : Spring Boot 3.1.0 + Spring Data JPA
+- **Base de données** : H2 (développement)
+- **Build** : Maven
 
-## How to run (dev)
-1. Cloner le repo :
+## Démarrage rapide
+
+1. Cloner le projet
+2. Lancer l'application :
 ```bash
-git clone https://github.com/<USER>/covoiturage-vaadin.git
-cd covoiturage-vaadin/backend
+mvn spring-boot:run
 ```
-2. Lancer en local (H2) :
-```bash
-./mvnw spring-boot:run
-# ou via IDE (Eclipse / IntelliJ)
+3. Accéder à l'application : `http://localhost:8080`
+
+## Architecture
+
+Structure hexagonale (ports & adapters) :
+
+```
+src/main/java/com/example/covoiturage_vaadin/
+├── domain/model/           # Entités métier (Student, Trip)
+├── application/
+│   ├── ports/             # Interfaces (IStudentRepositoryPort, ITripRepositoryPort)
+│   └── services/          # Services métier (StudentService, TripService)
+├── infrastructure/adapter/ # Implémentations JPA
+└── ui/view/               # Vues Vaadin
 ```
 
-3. Avec Docker Compose (Postgres) — à venir : `infra/docker-compose.yml`
+## Vues disponibles
 
-## Branching & workflow
-- `main` : stable / livrable
-- `dev` : intégration en cours
-- `feature/<nom>` : nouvelles fonctionnalités
-- PR obligatoire vers `dev`, puis `dev` → `main` après validation
+- `/` : Gestion des étudiants
+- `/proposer-trajet` : Proposer un trajet
+- `/rechercher-trajet` : Rechercher des trajets
 
-## Livrables
-- Code source (repo)
-- Document d’architecture (docs/architecture.docx ou .pdf)
-- Présentation (slides)
+## Console H2
 
-## Contribuer
-- Créer une issue / assigner
-- Ouvrir une PR propre (description + références issues)
-- Respecter le style Java (formatting), ajouter tests unitaires
+Accéder à la base de données : `http://localhost:8080/h2-console`
+- JDBC URL : `jdbc:h2:mem:covoiturage`
+- Username : `sa`
+- Password : (vide)
+
+## Fonctionnalités à implémenter
+
+### Fonctionnel
+- [ ] Authentification (SSO école)
+- [ ] Code étudiant dans le profil
+- [ ] Trajets réguliers (domicile → campus)
+- [ ] Recherche par codes étudiants/emails
+- [ ] Système de réservation complet
+- [ ] Mise en relation (messages entre étudiants)
 
 ## Auteurs
-- Mehdi Tazerouti et Salim Bouskine
 
----
+Mehdi Tazerouti et Salim Bouskine
