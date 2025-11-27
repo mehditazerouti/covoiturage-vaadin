@@ -11,8 +11,11 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import jakarta.annotation.security.PermitAll;
+
 @Route("")
 @PageTitle("Ajouter des etudiants")
+@PermitAll
 public class StudentView extends VerticalLayout {
 	// ANCIEN : private final StudentJpaRepository repo;
 	private final StudentService studentService; // <-- Injectez le Service

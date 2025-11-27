@@ -8,11 +8,15 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
+
+import jakarta.annotation.security.PermitAll;
+
 import com.vaadin.flow.router.PageTitle;
 import java.time.format.DateTimeFormatter;
 
 @Route("rechercher-trajet")
 @PageTitle("Rechercher un trajet")
+@PermitAll
 public class TripSearchView extends VerticalLayout {
 
     private final TripService tripService;

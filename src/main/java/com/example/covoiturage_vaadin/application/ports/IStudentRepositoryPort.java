@@ -9,4 +9,10 @@ public interface IStudentRepositoryPort {
     void delete(Student student);
     Optional<Student> findById(Long id);
     List<Student> findAll();
+
+    // Nouvelles méthodes pour l'authentification
+    Optional<Student> findByUsername(String username);
+    Optional<Student> findByStudentCode(String studentCode);
+    boolean existsByUsername(String username);
+    boolean existsByEmail(String email);
 }

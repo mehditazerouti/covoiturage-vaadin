@@ -37,4 +37,26 @@ public class StudentService {
     public void deleteStudent(Student student) {
         studentRepository.delete(student);
     }
+
+    // Nouvelles méthodes pour l'authentification
+
+    @Transactional(readOnly = true)
+    public Optional<Student> getStudentByUsername(String username) {
+        return studentRepository.findByUsername(username);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Student> getStudentByStudentCode(String studentCode) {
+        return studentRepository.findByStudentCode(studentCode);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByUsername(String username) {
+        return studentRepository.existsByUsername(username);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(String email) {
+        return studentRepository.existsByEmail(email);
+    }
 }

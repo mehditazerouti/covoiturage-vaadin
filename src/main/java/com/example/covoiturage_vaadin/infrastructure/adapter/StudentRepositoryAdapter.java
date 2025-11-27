@@ -36,4 +36,26 @@ public class StudentRepositoryAdapter implements IStudentRepositoryPort {
     public List<Student> findAll() {
         return jpaRepository.findAll();
     }
+
+    // Implémentations des nouvelles méthodes pour l'authentification
+
+    @Override
+    public Optional<Student> findByUsername(String username) {
+        return jpaRepository.findByUsername(username);
+    }
+
+    @Override
+    public Optional<Student> findByStudentCode(String studentCode) {
+        return jpaRepository.findByStudentCode(studentCode);
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return jpaRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return jpaRepository.existsByEmail(email);
+    }
 }
