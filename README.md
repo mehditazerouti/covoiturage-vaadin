@@ -7,17 +7,31 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
 
 ## Fonctionnalités actuelles
 
-### ✅ Authentification & Sécurité (Phase 1)
+### ✅ Authentification & Sécurité (Phases 1-4 complètes)
 - **Login/Logout** : Authentification sécurisée avec BCrypt
+- **Inscription publique** : Formulaire d'inscription accessible à tous
+  - Code whitelisté → activation immédiate
+  - Code non whitelisté → validation admin requise
 - **Rôles** : Système USER/ADMIN avec contrôle d'accès
 - **Session management** : Sessions persistées en base MySQL
 - **Compte admin** : Créé automatiquement au démarrage (admin/admin123)
+- **Codes whitelistés** : 3 codes pré-autorisés (22405100, 22405101, 22405102)
 
 ### ✅ Gestion des étudiants
-- Annuaire des étudiants (avec avatars Vaadin)
-- Suppression d'étudiants (réservée aux admins)
-- Protection contre l'auto-suppression
-- Filtrage des comptes ADMIN dans l'annuaire
+- **Annuaire** : Liste des étudiants avec avatars Vaadin
+- **Suppression** : Réservée aux admins (impossible de se supprimer soi-même)
+- **Filtrage** : N'affiche pas les comptes ADMIN
+- **Validation** : Interface admin pour approuver/rejeter les étudiants en attente
+
+### ✅ Administration (réservé aux ADMIN)
+- **Whitelist** : Gestion CRUD des codes étudiants autorisés
+  - Ajout/suppression de codes
+  - Visualisation des codes utilisés et leur attribution
+  - Protection : impossible de supprimer un code déjà utilisé
+- **Étudiants en attente** : Validation des inscriptions
+  - Approuver : whitelist le code + active le compte
+  - Rejeter : supprime le compte
+- **Création manuelle** : Ajout d'étudiants par l'admin
 
 ### ✅ Gestion des trajets
 - **Proposer un trajet** : Formulaire avec auto-assignation du conducteur
@@ -26,6 +40,8 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
 
 ### ✅ Interface moderne
 - Layout principal avec **sidebar navigation** (Vaadin AppLayout)
+- **Section utilisateur** : Annuaire, Rechercher trajet, Proposer trajet
+- **Section admin** : Créer étudiant, Whitelist, Étudiants en attente (visible uniquement pour ROLE_ADMIN)
 - Navigation responsive avec drawer toggle
 - Bouton de déconnexion dans la sidebar
 
@@ -80,9 +96,17 @@ mvn spring-boot:run
 Username: admin
 Password: admin123
 Email: admin@dauphine.eu
+Code: ADMIN001
 ```
 
-> **Note** : Pour l'instant, seul le compte admin existe. Le système d'inscription avec whitelist (Phases 2-4) n'est pas encore implémenté.
+### Codes étudiants whitelistés (pour inscription rapide)
+```
+22405100
+22405101
+22405102
+```
+
+> **Note** : Vous pouvez vous inscrire avec l'un de ces codes pour un accès immédiat, ou utiliser un autre code qui nécessitera une validation admin.
 
 ## Architecture
 
@@ -91,20 +115,25 @@ Structure hexagonale (ports & adapters) avec séparation stricte des couches :
 ```
 src/main/java/com/example/covoiturage_vaadin/
 ├── domain/model/              # Entités métier
-│   ├── Student.java           # Étudiant (avec champs auth)
-│   └── Trip.java              # Trajet
+│   ├── Student.java           # Étudiant (avec champs auth + approved)
+│   ├── Trip.java              # Trajet
+│   └── AllowedStudentCode.java # Whitelist codes étudiants
 ├── application/
 │   ├── ports/                 # Interfaces (contrats)
 │   │   ├── IStudentRepositoryPort.java
-│   │   └── ITripRepositoryPort.java
+│   │   ├── ITripRepositoryPort.java
+│   │   └── IAllowedStudentCodeRepositoryPort.java
 │   └── services/              # Services métier (cas d'usage)
 │       ├── StudentService.java
 │       ├── TripService.java
-│       └── SecurityContextService.java
+│       ├── SecurityContextService.java
+│       ├── AllowedStudentCodeService.java
+│       └── AuthenticationService.java
 ├── infrastructure/
 │   ├── adapter/               # Implémentations JPA
 │   │   ├── StudentJpaRepository + Adapter
-│   │   └── TripJpaRepository + Adapter
+│   │   ├── TripJpaRepository + Adapter
+│   │   └── AllowedStudentCodeJpaRepository + Adapter
 │   ├── security/              # UserDetailsService
 │   │   └── UserDetailsServiceImpl.java
 │   └── config/                # Configuration Security + Data
@@ -112,13 +141,17 @@ src/main/java/com/example/covoiturage_vaadin/
 │       └── DataInitializer.java
 └── ui/
     ├── component/             # Composants réutilisables
-    │   ├── MainLayout.java    # Layout principal + sidebar
+    │   ├── MainLayout.java    # Layout principal + sidebar (sections user/admin)
     │   └── LogoutButton.java
     └── view/                  # Vues Vaadin
         ├── LoginView.java     # Authentification
+        ├── RegisterView.java  # Inscription publique
         ├── StudentView.java   # Annuaire
         ├── TripCreationView.java
-        └── TripSearchView.java
+        ├── TripSearchView.java
+        ├── AdminStudentCreationView.java # Admin: créer étudiant
+        ├── AdminWhitelistView.java       # Admin: gérer whitelist
+        └── PendingStudentsView.java      # Admin: valider étudiants
 ```
 
 ## Vues disponibles
@@ -126,32 +159,17 @@ src/main/java/com/example/covoiturage_vaadin/
 | Route | Vue | Accès | Description |
 |-------|-----|-------|-------------|
 | `/login` | LoginView | Public | Authentification |
+| `/register` | RegisterView | Public | Inscription publique |
 | `/` | StudentView | Authentifié | Annuaire des étudiants |
 | `/proposer-trajet` | TripCreationView | Authentifié | Formulaire de création de trajet |
 | `/rechercher-trajet` | TripSearchView | Authentifié | Recherche de trajets |
+| `/admin/create-student` | AdminStudentCreationView | Admin | Créer un étudiant manuellement |
+| `/admin/whitelist` | AdminWhitelistView | Admin | Gérer les codes étudiants autorisés |
+| `/admin/pending-students` | PendingStudentsView | Admin | Valider/rejeter les étudiants en attente |
 
 ## Fonctionnalités à implémenter
 
-### 🔴 Phase 2 : Système de whitelist (selon plan.md)
-- [ ] Créer l'entité `AllowedStudentCode`
-- [ ] Port `IAllowedStudentCodeRepositoryPort` + Adapter JPA
-- [ ] Service `AllowedStudentCodeService`
-- [ ] DataInitializer : ajouter codes pré-autorisés (20240001, 20240002, 20240003)
-
-### 🔴 Phase 3 : Interface admin whitelist
-- [ ] Vue `AdminWhitelistView` (@RolesAllowed("ADMIN"))
-- [ ] CRUD des codes autorisés
-- [ ] Grid avec colonnes : code, utilisé, créé par, date
-- [ ] Lien dans la sidebar (admin uniquement)
-
-### 🔴 Phase 4 : Inscription étudiants
-- [ ] Service `AuthenticationService.registerStudent()`
-- [ ] Vue `RegisterView` (formulaire inscription)
-- [ ] Validation code étudiant via whitelist
-- [ ] Lien inscription sur LoginView
-- [ ] Modifier `TripCreationView` : retirer sélection conducteur
-
-### 🟡 Phase 5 : Système de réservation
+### 🔴 Phase 5 : Système de réservation
 - [ ] Créer l'entité `Booking` (réservation)
 - [ ] Port + Service `BookingService`
 - [ ] Implémenter `TripService.bookTrip(tripId)`
@@ -171,8 +189,9 @@ src/main/java/com/example/covoiturage_vaadin/
 ## Base de données
 
 ### Tables principales
-- `student` : Étudiants (avec champs auth : username, password, role, etc.)
+- `student` : Étudiants (avec champs auth : username, password, role, approved, enabled, etc.)
 - `trip` : Trajets de covoiturage
+- `allowed_student_code` : Whitelist des codes étudiants autorisés
 - `spring_session` : Sessions utilisateurs (gérée par Spring Session JDBC)
 
 ### Accès à la base
@@ -182,9 +201,31 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 - User : `root`
 - Password : (vide)
 
-## Bugs corrigés
+## Historique des développements
 
-### LogoutButton NullPointerException (27/11/2024) ✅
+### Correction suppression étudiant (27/11/2025) ✅
+- **Problème** : Impossible de supprimer un étudiant ayant utilisé un code whitelist
+  - Erreur : `SQLIntegrityConstraintViolationException` (contrainte de clé étrangère)
+  - Le code restait marqué comme "utilisé" même après suppression
+- **Solution** :
+  - Configuration `ON DELETE SET NULL` sur la relation `usedBy`
+  - Libération automatique du code lors de la suppression (`used=false`)
+  - Le code redevient disponible pour une nouvelle inscription
+- **Migration requise** : Script SQL fourni pour modifier la contrainte FK
+- **Fichiers modifiés** : AllowedStudentCode.java, StudentService.java, AllowedStudentCodeService.java
+
+### Système d'inscription et whitelist (27/11/2025) ✅
+- **Implémenté** : Phases 2, 3, et 4 complètes
+- **Nouvelles fonctionnalités** :
+  - Inscription publique avec validation par whitelist
+  - Gestion admin de la whitelist (CRUD)
+  - Validation admin des étudiants en attente
+  - Champ `approved` dans l'entité Student
+  - Section administration dans la sidebar (visible pour admins)
+- **8 nouveaux fichiers** créés (entités, services, vues)
+- **4 fichiers modifiés** (Student, MainLayout, LoginView, DataInitializer)
+
+### LogoutButton NullPointerException (27/11/2025) ✅
 - **Problème** : `UI.getCurrent()` retournait `null` après déconnexion
 - **Solution** : Capture de la référence UI avant l'invalidation de session
 - **Fichier** : `ui/component/LogoutButton.java`

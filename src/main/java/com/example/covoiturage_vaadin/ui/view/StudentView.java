@@ -111,11 +111,12 @@ public class StudentView extends VerticalLayout {
     }
 	
     private void refreshGrid() {
-        // Filtrer pour ne pas afficher les ADMINS
+        // Filtrer pour n'afficher que les étudiants approuvés (approved=true) et non-admins
         List<Student> students = studentService.getAllStudents().stream()
-                .filter(s -> !"ROLE_ADMIN".equals(s.getRole()))
+                .filter(s -> !"ROLE_ADMIN".equals(s.getRole())) // Exclure les admins
+                .filter(Student::isApproved) // N'afficher que les étudiants approuvés
                 .collect(Collectors.toList());
-        
+
         grid.setItems(students);
     }
 }

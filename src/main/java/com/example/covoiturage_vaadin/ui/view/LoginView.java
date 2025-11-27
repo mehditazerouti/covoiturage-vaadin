@@ -8,6 +8,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,7 +35,13 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
         login.setForgotPasswordButtonVisible(false);
 
-        add(new H1("Plateforme Covoiturage"), login);
+        // Lien vers l'inscription
+        RouterLink registerLink = new RouterLink("Pas encore de compte ? S'inscrire", RegisterView.class);
+        registerLink.getStyle()
+            .set("margin-top", "var(--lumo-space-m)")
+            .set("text-align", "center");
+
+        add(new H1("Plateforme Covoiturage"), login, registerLink);
     }
     
     @Override

@@ -1,4 +1,5 @@
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/App.java
+/Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/RegisterView.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/infrastructure/config/VaadinSecurityConfiguration.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/infrastructure/adapter/StudentJpaRepository.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/StudentView.java
@@ -7,6 +8,7 @@
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/TripCreationView.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/application/services/StudentService.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/AdminStudentCreationView.java
+/Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/PendingStudentsView.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/infrastructure/adapter/TripRepositoryAdapter.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/domain/model/AllowedStudentCode.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/LoginView.java
@@ -22,6 +24,7 @@
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/application/ports/IAllowedStudentCodeRepositoryPort.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/application/services/TripService.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/infrastructure/adapter/StudentRepositoryAdapter.java
+/Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/application/services/AuthenticationService.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/view/TripSearchView.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/application/services/AllowedStudentCodeService.java
 /Users/salim/Documents/Code/java/preprod-covoiturage-vaadin/src/main/java/com/example/covoiturage_vaadin/ui/component/LogoutButton.java

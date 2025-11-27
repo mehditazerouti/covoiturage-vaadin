@@ -7,6 +7,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Column;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
 
 /**
@@ -30,6 +33,8 @@ public class AllowedStudentCode {
     private String createdBy; // Username de l'admin qui a créé le code
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "used_by_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private Student usedBy; // Référence à l'étudiant qui a utilisé ce code (si used=true)
 
     // Constructeur vide (obligatoire pour JPA)

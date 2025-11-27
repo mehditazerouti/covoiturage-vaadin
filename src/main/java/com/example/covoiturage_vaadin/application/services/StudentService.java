@@ -43,6 +43,19 @@ public class StudentService {
 
     @Transactional
     public void deleteStudent(Student student) {
+        // Libérer le code whitelist si l'étudiant en a utilisé un
+        String studentCode = student.getStudentCode();
+        if (studentCode != null && codeService.isCodeWhitelisted(studentCode)) {
+            codeService.findByStudentCode(studentCode).ifPresent(code -> {
+                if (code.isUsed() && code.getUsedBy() != null && code.getUsedBy().getId().equals(student.getId())) {
+                    // Remettre le code comme non utilisé
+                    code.setUsed(false);
+                    code.setUsedBy(null);
+                    codeService.saveCode(code);
+                }
+            });
+        }
+
         studentRepository.delete(student);
     }
 

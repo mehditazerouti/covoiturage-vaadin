@@ -89,6 +89,14 @@ public class AllowedStudentCodeService {
     }
 
     /**
+     * Sauvegarde ou met à jour un code étudiant.
+     */
+    @Transactional
+    public AllowedStudentCode saveCode(AllowedStudentCode code) {
+        return repository.save(code);
+    }
+
+    /**
      * Supprime un code autorisé.
      */
     @Transactional

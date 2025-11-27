@@ -7,40 +7,59 @@
 ### Couches
 
 1. **Domain** (`domain/model/`)
-   - `Student` : id, name, email, **studentCode**, **username**, **password** (BCrypt), **role** (USER/ADMIN), enabled, createdAt
+   - `Student` : id, name, email, **studentCode**, **username**, **password** (BCrypt), **role** (USER/ADMIN), enabled, **approved**, createdAt
    - `Trip` : id, departureAddress, destinationAddress, departureTime, totalSeats, availableSeats, isRegular, driver (ManyToOne → Student)
-   - Méthode métier : `Trip.bookSeat()`
+   - `AllowedStudentCode` : id, studentCode (unique), used, createdAt, createdBy, usedBy (ManyToOne → Student)
+   - Méthodes métier : `Trip.bookSeat()`, `AllowedStudentCode.markAsUsed(Student)`
 
 2. **Application** (`application/`)
-   - **Ports** : `IStudentRepositoryPort`, `ITripRepositoryPort` (interfaces)
+   - **Ports** : `IStudentRepositoryPort`, `ITripRepositoryPort`, `IAllowedStudentCodeRepositoryPort` (interfaces)
    - **Services** :
      - `StudentService` : Gestion étudiants
      - `TripService` : Gestion trajets (auto-assign driver via SecurityContext)
      - `SecurityContextService` : Abstraction du SecurityContext
+     - `AllowedStudentCodeService` : Gestion de la whitelist des codes étudiants
+     - `AuthenticationService` : Gestion de l'inscription et approbation des étudiants
    - Services annotés avec `@Transactional(readOnly = true)` pour lectures, `@Transactional` pour écritures
 
 3. **Infrastructure** (`infrastructure/`)
-   - **Adapters** : `StudentRepositoryAdapter`, `TripRepositoryAdapter` (implémentent les ports)
-   - **JPA Repositories** : `StudentJpaRepository`, `TripJpaRepository` (Spring Data)
+   - **Adapters** : `StudentRepositoryAdapter`, `TripRepositoryAdapter`, `AllowedStudentCodeRepositoryAdapter` (implémentent les ports)
+   - **JPA Repositories** : `StudentJpaRepository`, `TripJpaRepository`, `AllowedStudentCodeJpaRepository` (Spring Data)
    - **Security** :
      - `VaadinSecurityConfiguration` : Configuration Spring Security pour Vaadin
      - `UserDetailsServiceImpl` : Authentification via Student
      - BCrypt pour le hashing des mots de passe
    - **Config** :
-     - `DataInitializer` : Compte admin par défaut + codes étudiants initiaux
+     - `DataInitializer` : Compte admin par défaut + codes étudiants whitelistés (22405100, 22405101, 22405102)
 
 4. **UI** (`ui/`)
    - **Layout** : `MainLayout` (AppLayout avec sidebar + header + logout)
+     - Section navigation principale (tous utilisateurs)
+     - Section administration (visible uniquement pour ROLE_ADMIN)
    - **Components** : `LogoutButton` (✅ corrigé : capture UI avant logout)
-   - **Views** :
+   - **Views publiques** :
      - `LoginView` (`/login`) : Authentification [@AnonymousAllowed]
-     - `StudentView` (`/`) : Annuaire étudiants [@PermitAll]
+       - Lien vers RegisterView
+       - Traduction française du formulaire
+     - `RegisterView` (`/register`) : Inscription publique [@AnonymousAllowed]
+       - Si code whitelisté → compte activé immédiatement
+       - Si code non whitelisté → compte en attente de validation admin
+   - **Views utilisateur** [@PermitAll] :
+     - `StudentView` (`/`) : Annuaire étudiants
        - Colonne "Actions" (suppression) visible **uniquement pour ROLE_ADMIN**
        - Protection : impossible de se supprimer soi-même
        - Filtrage : n'affiche pas les comptes ADMIN
-     - `TripCreationView` (`/proposer-trajet`) : Formulaire création trajet [@PermitAll]
+     - `TripCreationView` (`/proposer-trajet`) : Formulaire création trajet
        - ⚠️ Pas de sélection conducteur : **auto-assigné** depuis SecurityContext
-     - `TripSearchView` (`/rechercher-trajet`) : Recherche trajets par destination [@PermitAll]
+     - `TripSearchView` (`/rechercher-trajet`) : Recherche trajets par destination
+   - **Views admin** [@RolesAllowed("ADMIN")] :
+     - `AdminStudentCreationView` (`/admin/create-student`) : Création manuelle d'étudiant par admin
+     - `AdminWhitelistView` (`/admin/whitelist`) : Gestion CRUD de la whitelist
+       - Grid : code, utilisé, utilisé par, créé par, date, actions
+       - Protection : impossible de supprimer un code utilisé
+     - `PendingStudentsView` (`/admin/pending-students`) : Validation des étudiants en attente
+       - Affiche les étudiants avec approved=false
+       - Actions : Approuver (whitelist + activer) ou Rejeter (supprimer)
 
 ## Entités JPA
 
@@ -57,6 +76,8 @@ private Student driver;
 - `username` et `email` sont uniques
 - `role` : "ROLE_USER" ou "ROLE_ADMIN"
 - `password` : BCrypt avec force 10 (défaut)
+- `approved` : true = compte validé, false = en attente de validation admin
+- `enabled` : true = peut se connecter, false = compte désactivé
 
 ## Configuration
 
@@ -95,9 +116,11 @@ private Student driver;
    - Ne jamais manipuler directement `SecurityContextHolder` dans les services métier
    - `TripService.proposeTrip()` récupère automatiquement le conducteur connecté
 
-## Authentification & Autorisation (✅ Phase 1 Implémentée)
+## Authentification & Autorisation
 
-### Ce qui est implémenté
+### ✅ Phases 1 à 4 : Système complet d'inscription et whitelist (IMPLÉMENTÉ)
+
+#### Phase 1 : Authentification de base
 - ✅ Login/Logout fonctionnel (LoginView)
 - ✅ BCrypt pour les mots de passe
 - ✅ Rôles USER/ADMIN (via Student.role)
@@ -105,6 +128,28 @@ private Student driver;
 - ✅ MainLayout avec navigation drawer
 - ✅ LogoutButton corrigé (capture UI avant invalidation session)
 - ✅ Compte admin par défaut (DataInitializer)
+
+#### Phase 2 : Système de whitelist
+- ✅ Entité `AllowedStudentCode` (whitelist codes étudiants)
+- ✅ Port `IAllowedStudentCodeRepositoryPort` + Adapter JPA
+- ✅ Service `AllowedStudentCodeService`
+- ✅ DataInitializer : codes pré-autorisés (22405100, 22405101, 22405102)
+
+#### Phase 3 : Interface admin whitelist
+- ✅ Vue `AdminWhitelistView` (@RolesAllowed("ADMIN"))
+- ✅ CRUD complet des codes autorisés
+- ✅ Grid avec colonnes : code, utilisé, utilisé par, créé par, date
+- ✅ Protection : impossible de supprimer un code utilisé
+
+#### Phase 4 : Inscription étudiants
+- ✅ Service `AuthenticationService.registerStudent()` et `approveStudent()`
+- ✅ Vue `RegisterView` (formulaire inscription public)
+- ✅ Validation code étudiant via whitelist :
+  - Code whitelisté → approved=true, enabled=true (accès immédiat)
+  - Code non whitelisté → approved=false, enabled=false (en attente)
+- ✅ Lien inscription sur LoginView
+- ✅ Vue `PendingStudentsView` pour valider/rejeter les étudiants en attente
+- ✅ Champ `approved` ajouté à l'entité Student
 
 ### Compte admin par défaut
 ```
@@ -114,25 +159,12 @@ Email: admin@dauphine.eu
 Code: ADMIN001
 ```
 
+### Codes étudiants whitelistés par défaut
+```
+22405100, 22405101, 22405102
+```
+
 ## À implémenter (TODO) - Prochaines étapes
-
-### Phase 2 : Système de whitelist (selon plan.md)
-- [ ] Entité `AllowedStudentCode` (whitelist codes étudiants)
-- [ ] Port `IAllowedStudentCodeRepositoryPort`
-- [ ] Service `AllowedStudentCodeService`
-- [ ] DataInitializer : ajouter codes pré-autorisés
-
-### Phase 3 : Interface admin whitelist
-- [ ] Vue `AdminWhitelistView` (@RolesAllowed("ADMIN"))
-- [ ] CRUD des codes autorisés
-- [ ] Grid avec colonnes : code, utilisé, créé par, date
-
-### Phase 4 : Inscription étudiants
-- [ ] Service `AuthenticationService.registerStudent()`
-- [ ] Vue `RegisterView` (formulaire inscription)
-- [ ] Validation code étudiant via whitelist
-- [ ] Lien inscription sur LoginView
-- [ ] Modifier `TripService.proposeTrip()` pour auto-assign driver
 
 ### Phase 5 : Système de réservation
 - [ ] Entité `Booking` (id, trip, student, bookedAt, status)
@@ -160,9 +192,44 @@ Code: ADMIN001
 - Spring Session JDBC
 - Maven
 
-## Bugs corrigés récents
+## Historique des développements
 
-### LogoutButton NullPointerException (✅ 27/11/2024)
+### Correction suppression étudiant avec code whitelist (✅ 27/11/2025 20:00)
+- **Problème** : Erreur de contrainte de clé étrangère lors de la suppression d'un étudiant ayant utilisé un code whitelist
+  - `SQLIntegrityConstraintViolationException`: Cannot delete or update a parent row
+  - Le code restait marqué comme "utilisé" après suppression
+- **Solution** :
+  1. Ajout `@OnDelete(action = OnDeleteAction.SET_NULL)` sur `AllowedStudentCode.usedBy` (ligne 37)
+  2. Modification `StudentService.deleteStudent()` pour libérer automatiquement le code (ligne 45-60)
+  3. Ajout méthode `AllowedStudentCodeService.saveCode()` (ligne 95)
+- **Migration SQL requise** :
+  ```sql
+  ALTER TABLE allowed_student_code DROP FOREIGN KEY FKb6y4t1fmdirvxv4ny3otlku8k;
+  ALTER TABLE allowed_student_code ADD CONSTRAINT FKb6y4t1fmdirvxv4ny3otlku8k
+  FOREIGN KEY (used_by_id) REFERENCES student(id) ON DELETE SET NULL;
+  ```
+- **Fichiers modifiés** :
+  - `domain/model/AllowedStudentCode.java:37` : Annotation OnDelete
+  - `application/services/StudentService.java:45-60` : Logique de libération du code
+  - `application/services/AllowedStudentCodeService.java:95` : Méthode saveCode
+
+### Système d'inscription et whitelist (✅ 27/11/2025 18:00)
+- **Implémenté** : Phases 2, 3, et 4 complètes
+- **Fichiers ajoutés** :
+  - `domain/model/AllowedStudentCode.java` : Entité whitelist
+  - `application/services/AuthenticationService.java` : Service inscription
+  - `application/services/AllowedStudentCodeService.java` : Service whitelist
+  - `ui/view/RegisterView.java` : Formulaire inscription public
+  - `ui/view/AdminWhitelistView.java` : Gestion admin de la whitelist
+  - `ui/view/PendingStudentsView.java` : Validation des étudiants en attente
+  - Ports et adapters correspondants
+- **Fichiers modifiés** :
+  - `domain/model/Student.java` : Ajout champ `approved`
+  - `ui/component/MainLayout.java` : Section admin avec 3 nouveaux liens
+  - `ui/view/LoginView.java` : Lien vers RegisterView
+  - `infrastructure/config/DataInitializer.java` : Ajout codes whitelistés
+
+### LogoutButton NullPointerException (✅ 27/11/2025 16:00)
 - **Problème** : `UI.getCurrent()` retournait `null` après `SecurityContextLogoutHandler.logout()`
 - **Solution** : Capturer la référence UI **avant** l'invalidation de session
 - **Fichier** : `ui/component/LogoutButton.java:22`
