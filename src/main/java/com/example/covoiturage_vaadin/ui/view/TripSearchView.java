@@ -7,6 +7,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
 import com.vaadin.flow.router.Route;
 
 import jakarta.annotation.security.PermitAll;
@@ -14,8 +15,8 @@ import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.PageTitle;
 import java.time.format.DateTimeFormatter;
 
-@Route("rechercher-trajet")
-@PageTitle("Rechercher un trajet")
+@Route(value = "rechercher-trajet", layout = MainLayout.class)
+@PageTitle("Rechercher un trajet - Covoiturage")
 @PermitAll
 public class TripSearchView extends VerticalLayout {
 

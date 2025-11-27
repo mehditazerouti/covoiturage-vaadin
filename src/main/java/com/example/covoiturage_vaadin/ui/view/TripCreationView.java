@@ -3,6 +3,7 @@ package com.example.covoiturage_vaadin.ui.view;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.application.services.TripService;
 import com.example.covoiturage_vaadin.domain.model.Student;
+import com.example.covoiturage_vaadin.ui.component.LogoutButton;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
@@ -10,6 +11,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -18,8 +20,8 @@ import jakarta.annotation.security.PermitAll;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Route("proposer-trajet")
-@PageTitle("Proposer un trajet")
+@Route(value = "proposer-trajet", layout = MainLayout.class)
+@PageTitle("Proposer un trajet - Covoiturage")
 @PermitAll
 public class TripCreationView extends VerticalLayout {
 

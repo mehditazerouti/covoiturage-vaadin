@@ -9,7 +9,9 @@ D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\c
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\ui\view\LoginView.java
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\infrastructure\config\DataInitializer.java
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\ui\view\TripCreationView.java
+D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\ui\component\MainLayout.java
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\infrastructure\adapter\StudentJpaRepository.java
+D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\ui\component\LogoutButton.java
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\ui\view\StudentView.java
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\application\ports\IStudentRepositoryPort.java
 D:\Documents\Ecole\Code\java_code\covoiturage-vaadin\src\main\java\com\example\covoiturage_vaadin\domain\model\Student.java
