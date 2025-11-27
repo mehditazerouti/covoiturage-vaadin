@@ -7,6 +7,7 @@ import com.example.covoiturage_vaadin.ui.component.LogoutButton;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -32,6 +33,8 @@ public class TripCreationView extends VerticalLayout {
     public TripCreationView(TripService tripService, StudentService studentService) {
         this.tripService = tripService;
         this.studentService = studentService;
+
+        H2 title = new H2("Proposer un trajet");
 
         // --- CHAMPS DE FORMULAIRE ---
         
@@ -82,7 +85,8 @@ public class TripCreationView extends VerticalLayout {
                 Notification.show("Erreur: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
             }
         });
+        
 
-        add(driverSelect, departureField, destinationField, timePicker, seatsField, proposeButton);
+        add(title, driverSelect, departureField, destinationField, timePicker, seatsField, proposeButton);
     }
 }

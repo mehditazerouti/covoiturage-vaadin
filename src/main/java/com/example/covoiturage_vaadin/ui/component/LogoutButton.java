@@ -18,15 +18,19 @@ public class LogoutButton extends HorizontalLayout {
 
         // Logique de déconnexion
         logoutBtn.addClickListener(e -> {
-            // 1. Invalider la session Spring Security côté serveur
+            // 1. Capturer la référence UI AVANT le logout (car la session sera invalidée)
+            UI ui = UI.getCurrent();
+
+            // 2. Invalider la session Spring Security côté serveur
             SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
             logoutHandler.logout(
                     VaadinServletRequest.getCurrent().getHttpServletRequest(),
                     null,
                     null
             );
-            // 2. Rediriger vers la page de login
-            UI.getCurrent().getPage().setLocation("/login");
+
+            // 3. Rediriger vers la page de login avec l'UI capturée
+            ui.getPage().setLocation("/login");
         });
 
         add(logoutBtn);

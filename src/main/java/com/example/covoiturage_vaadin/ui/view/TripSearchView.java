@@ -4,6 +4,7 @@ import com.example.covoiturage_vaadin.application.services.TripService;
 import com.example.covoiturage_vaadin.domain.model.Trip;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -27,6 +28,8 @@ public class TripSearchView extends VerticalLayout {
     // Le Service est injecté automatiquement par Spring
     public TripSearchView(TripService tripService) {
         this.tripService = tripService;
+
+        H2 title = new H2("Rechercher un trajet");
         
         // Configuration de la grille
         configureGrid();
@@ -38,7 +41,7 @@ public class TripSearchView extends VerticalLayout {
         updateList(); 
 
         // Disposition
-        add(new HorizontalLayout(destinationSearchField, createSearchButton()), grid);
+        add(title, new HorizontalLayout(destinationSearchField, createSearchButton()), grid);
     }
     
     private void configureSearchForm() {

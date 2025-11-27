@@ -27,6 +27,8 @@ public class Student {
 
 	private boolean enabled = true;
 
+	private boolean approved = false;  // Étudiant validé par un admin (true) ou en attente (false)
+
 	private LocalDateTime createdAt;
 	// getters/setters
 	
@@ -117,5 +119,13 @@ public class Student {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isApproved() {
+        return approved;
+    }
+
+    public void setApproved(boolean approved) {
+        this.approved = approved;
     }
 }

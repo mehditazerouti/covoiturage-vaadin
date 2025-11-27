@@ -1,6 +1,8 @@
 package com.example.covoiturage_vaadin.ui.component;
 
 
+import com.example.covoiturage_vaadin.ui.view.AdminStudentCreationView;
+import com.example.covoiturage_vaadin.ui.view.AdminWhitelistView;
 import com.example.covoiturage_vaadin.ui.view.StudentView;
 import com.example.covoiturage_vaadin.ui.view.TripCreationView;
 import com.example.covoiturage_vaadin.ui.view.TripSearchView;
@@ -50,8 +52,10 @@ public class MainLayout extends AppLayout {
         
         // Ajout des liens de navigation
         nav.addItem(new SideNavItem("Gestion Étudiants", StudentView.class, VaadinIcon.USERS.create()));
-        nav.addItem(new SideNavItem("Rechercher Trajet", TripSearchView.class, VaadinIcon.SEARCH.create()));
-        nav.addItem(new SideNavItem("Proposer Trajet", TripCreationView.class, VaadinIcon.CAR.create()));
+        nav.addItem(new SideNavItem("Rechercher", TripSearchView.class, VaadinIcon.SEARCH.create()));
+        nav.addItem(new SideNavItem("Proposer", TripCreationView.class, VaadinIcon.CAR.create()));
+        nav.addItem(new SideNavItem("Créer un étudiant", AdminStudentCreationView.class, VaadinIcon.PLUS_CIRCLE.create()));
+        nav.addItem(new SideNavItem("Whitelist", AdminWhitelistView.class, VaadinIcon.PLUS_CIRCLE.create()));
 
         Scroller scroller = new Scroller(nav);
         scroller.setClassName(LumoUtility.Padding.SMALL);
