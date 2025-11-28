@@ -9,7 +9,8 @@ public interface ITripRepositoryPort {
     Trip save(Trip trip);
     Optional<Trip> findById(Long id);
     List<Trip> findAll();
-    
+    void deleteById(Long id);
+
     // Méthode clé pour le cahier des charges
     List<Trip> findTripsByDestination(String destination); // Rechercher un trajet par adresse [cite: 21]
 }

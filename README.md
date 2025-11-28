@@ -3,7 +3,7 @@
 **Projet universitaire — Application de covoiturage pour étudiants Dauphine**
 
 ## Description
-Application de covoiturage développée avec Spring Boot et Vaadin, suivant une **architecture hexagonale** (Clean Architecture) avec système d'authentification complet.
+Application de covoiturage développée avec Spring Boot et Vaadin, suivant une **architecture hexagonale** (Clean Architecture) avec système d'authentification et de réservation complets.
 
 ## Fonctionnalités actuelles
 
@@ -34,16 +34,34 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
 - **Création manuelle** : Ajout d'étudiants par l'admin
 
 ### ✅ Gestion des trajets
-- **Proposer un trajet** : Formulaire avec auto-assignation du conducteur
+- **Proposer un trajet** : Formulaire avec auto-assignation du conducteur connecté
 - **Rechercher des trajets** : Recherche par destination (insensible à la casse)
-- Support des trajets réguliers (flag `isRegular`)
+- **Modifier/Supprimer un trajet** : Réservé au conducteur OU admin
+  - Dialog d'édition avec validation (impossible de réduire les places en dessous des réservations)
+  - Suppression avec cascade automatique des réservations associées
+- **Support des trajets réguliers** : Flag `isRegular` pour distinguer trajets ponctuels/réguliers
+
+### ✅ Système de réservation (Phase 5 complète)
+- **Réserver un trajet** : Bouton "Réserver" dans la recherche de trajets
+  - Vérification automatique : pas son propre trajet, pas de double réservation active, places disponibles
+  - Décrémentation automatique des places disponibles
+- **Mes réservations** : Vue dédiée avec liste complète
+  - Affichage : Trajet, Date/Heure, Conducteur, Places disponibles, Date de réservation, Statut
+  - Badge coloré par statut (vert=Confirmée, rouge=Annulée, gris=En attente)
+  - Action "Annuler" pour réservations actives
+- **Annulation** : Re-incrémentation automatique des places + possibilité de re-réserver
+- **Règles métier** :
+  - Un étudiant ne peut pas réserver son propre trajet
+  - Un étudiant ne peut avoir qu'une seule réservation active par trajet
+  - Les réservations annulées ne bloquent pas une nouvelle réservation
 
 ### ✅ Interface moderne
 - Layout principal avec **sidebar navigation** (Vaadin AppLayout)
-- **Section utilisateur** : Annuaire, Rechercher trajet, Proposer trajet
-- **Section admin** : Créer étudiant, Whitelist, Étudiants en attente (visible uniquement pour ROLE_ADMIN)
+- **Section utilisateur** : Rechercher trajet, Proposer trajet, Mes réservations
+- **Section admin** : Annuaire étudiants, Créer étudiant, Codes étudiants, Étudiants en attente
 - Navigation responsive avec drawer toggle
 - Bouton de déconnexion dans la sidebar
+- Dialogs modaux pour édition/suppression de trajets
 
 ## Stack technique
 - **Frontend** : Vaadin 24.2.0
@@ -73,19 +91,21 @@ cd preprod-covoiturage-vaadin
 CREATE DATABASE covoiturage_db;
 ```
 
-3. **Configurer application.properties** (si nécessaire)
+3. **Appliquer les migrations SQL** (voir section Migrations)
+
+4. **Configurer application.properties** (si nécessaire)
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/covoiturage_db
 spring.datasource.username=root
 spring.datasource.password=
 ```
 
-4. **Lancer l'application**
+5. **Lancer l'application**
 ```bash
 mvn spring-boot:run
 ```
 
-5. **Accéder à l'application**
+6. **Accéder à l'application**
 - URL : `http://localhost:8080`
 - Redirection automatique vers `/login`
 
@@ -116,16 +136,20 @@ Structure hexagonale (ports & adapters) avec séparation stricte des couches :
 src/main/java/com/example/covoiturage_vaadin/
 ├── domain/model/              # Entités métier
 │   ├── Student.java           # Étudiant (avec champs auth + approved)
-│   ├── Trip.java              # Trajet
+│   ├── Trip.java              # Trajet (avec méthode bookSeat())
+│   ├── Booking.java           # Réservation (avec méthodes cancel(), isActive())
+│   ├── BookingStatus.java     # Enum (PENDING, CONFIRMED, CANCELLED)
 │   └── AllowedStudentCode.java # Whitelist codes étudiants
 ├── application/
 │   ├── ports/                 # Interfaces (contrats)
 │   │   ├── IStudentRepositoryPort.java
 │   │   ├── ITripRepositoryPort.java
+│   │   ├── IBookingRepositoryPort.java
 │   │   └── IAllowedStudentCodeRepositoryPort.java
 │   └── services/              # Services métier (cas d'usage)
 │       ├── StudentService.java
 │       ├── TripService.java
+│       ├── BookingService.java
 │       ├── SecurityContextService.java
 │       ├── AllowedStudentCodeService.java
 │       └── AuthenticationService.java
@@ -133,6 +157,7 @@ src/main/java/com/example/covoiturage_vaadin/
 │   ├── adapter/               # Implémentations JPA
 │   │   ├── StudentJpaRepository + Adapter
 │   │   ├── TripJpaRepository + Adapter
+│   │   ├── BookingJpaRepository + Adapter
 │   │   └── AllowedStudentCodeJpaRepository + Adapter
 │   ├── security/              # UserDetailsService
 │   │   └── UserDetailsServiceImpl.java
@@ -141,17 +166,19 @@ src/main/java/com/example/covoiturage_vaadin/
 │       └── DataInitializer.java
 └── ui/
     ├── component/             # Composants réutilisables
-    │   ├── MainLayout.java    # Layout principal + sidebar (sections user/admin)
+    │   ├── MainLayout.java    # Layout principal + sidebar
+    │   ├── TripEditDialog.java # Dialog édition/suppression trajet
     │   └── LogoutButton.java
     └── view/                  # Vues Vaadin
         ├── LoginView.java     # Authentification
         ├── RegisterView.java  # Inscription publique
         ├── StudentView.java   # Annuaire
         ├── TripCreationView.java
-        ├── TripSearchView.java
-        ├── AdminStudentCreationView.java # Admin: créer étudiant
-        ├── AdminWhitelistView.java       # Admin: gérer whitelist
-        └── PendingStudentsView.java      # Admin: valider étudiants
+        ├── TripSearchView.java  # Recherche + Réservation + Modification
+        ├── MyBookingsView.java  # Mes réservations
+        ├── AdminStudentCreationView.java
+        ├── AdminWhitelistView.java
+        └── PendingStudentsView.java
 ```
 
 ## Vues disponibles
@@ -160,37 +187,20 @@ src/main/java/com/example/covoiturage_vaadin/
 |-------|-----|-------|-------------|
 | `/login` | LoginView | Public | Authentification |
 | `/register` | RegisterView | Public | Inscription publique |
-| `/` | StudentView | Authentifié | Annuaire des étudiants |
+| `/` | TripSearchView | Authentifié | Recherche + Réservation de trajets |
 | `/proposer-trajet` | TripCreationView | Authentifié | Formulaire de création de trajet |
-| `/rechercher-trajet` | TripSearchView | Authentifié | Recherche de trajets |
+| `/mes-reservations` | MyBookingsView | Authentifié | Liste des réservations + Annulation |
 | `/admin/create-student` | AdminStudentCreationView | Admin | Créer un étudiant manuellement |
 | `/admin/whitelist` | AdminWhitelistView | Admin | Gérer les codes étudiants autorisés |
 | `/admin/pending-students` | PendingStudentsView | Admin | Valider/rejeter les étudiants en attente |
-
-## Fonctionnalités à implémenter
-
-### 🔴 Phase 5 : Système de réservation
-- [ ] Créer l'entité `Booking` (réservation)
-- [ ] Port + Service `BookingService`
-- [ ] Implémenter `TripService.bookTrip(tripId)`
-- [ ] Ajouter bouton "Réserver" dans TripSearchView
-- [ ] Vue "Mes réservations"
-
-### 🟢 Améliorations futures
-- [ ] Exploitation du flag `isRegular` (trajets réguliers)
-- [ ] Filtres avancés de recherche (date, horaire)
-- [ ] Profil utilisateur éditable
-- [ ] Système de notifications/messages
-- [ ] Validation côté client (Vaadin Binder)
-- [ ] Tests unitaires (JUnit + Mockito)
-- [ ] Documentation API (Swagger)
-- [ ] Migration SSO école (optionnel)
+| `/students` | StudentView | Admin | Annuaire des étudiants |
 
 ## Base de données
 
 ### Tables principales
 - `student` : Étudiants (avec champs auth : username, password, role, approved, enabled, etc.)
 - `trip` : Trajets de covoiturage
+- `booking` : Réservations (avec cascade delete sur trip)
 - `allowed_student_code` : Whitelist des codes étudiants autorisés
 - `spring_session` : Sessions utilisateurs (gérée par Spring Session JDBC)
 
@@ -201,34 +211,214 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 - User : `root`
 - Password : (vide)
 
+### Migrations SQL requises
+
+#### 1. Contrainte ON DELETE SET NULL pour AllowedStudentCode
+```sql
+ALTER TABLE allowed_student_code DROP FOREIGN KEY FKb6y4t1fmdirvxv4ny3otlku8k;
+ALTER TABLE allowed_student_code
+ADD CONSTRAINT FKb6y4t1fmdirvxv4ny3otlku8k
+FOREIGN KEY (used_by_id) REFERENCES student(id) ON DELETE SET NULL;
+```
+
+#### 2. Contrainte ON DELETE CASCADE pour Booking
+```sql
+ALTER TABLE booking DROP FOREIGN KEY FKkp5ujmgvd2pmsehwpu2vyjkwb;
+ALTER TABLE booking
+ADD CONSTRAINT FKkp5ujmgvd2pmsehwpu2vyjkwb
+FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
+```
+
 ## Historique des développements
+
+### Phase 5 : Système de réservation (28/11/2025) ✅
+- **Implémenté** : Système complet de réservation de trajets
+- **Nouvelles entités** :
+  - `Booking` : Réservation avec statut (PENDING, CONFIRMED, CANCELLED)
+  - `BookingStatus` : Enum pour les statuts
+- **Nouveau service** : `BookingService` avec règles métier
+  - Création de réservation avec validations
+  - Annulation avec re-incrémentation des places
+  - Récupération des réservations par étudiant/trajet
+- **Nouvelles vues** :
+  - `MyBookingsView` : Liste des réservations avec annulation
+- **Modifications** :
+  - `TripSearchView` : Bouton "Réserver" fonctionnel
+  - `TripService` : Auto-assignation du conducteur connecté
+  - `Trip` : Méthode `bookSeat()` pour décrémenter les places
+- **6 nouveaux fichiers** créés (entité, enum, port, service, repositories, vue)
+- **2 fichiers modifiés** (TripSearchView, MainLayout)
+
+### Édition/Suppression de trajets (28/11/2025) ✅
+- **Implémenté** : Système complet d'édition et suppression de trajets
+- **Nouveau composant** : `TripEditDialog` (Vaadin Dialog)
+  - Formulaire pré-rempli avec validation
+  - Boutons : Valider, Supprimer (avec confirmation), Annuler
+  - Protection : impossible de réduire les places en dessous des réservations
+- **Nouveau service** : `TripService.updateTrip()`, `deleteTrip()`, `canEditTrip()`
+- **Modifications** :
+  - `TripSearchView` : Colonne "Actions" avec bouton "Modifier" (visible pour conducteur/admin)
+  - `ITripRepositoryPort` : Ajout méthode `deleteById()`
+- **Cascade delete** : Suppression d'un trajet supprime automatiquement ses réservations
+
+### Corrections critiques (28/11/2025) ✅
+- **Problème 1** : Contrainte FK bloquait la suppression de trajets avec réservations
+  - **Solution** : `@OnDelete(action = OnDeleteAction.CASCADE)` sur Booking → Trip
+  - **Migration SQL** : Modifier la contrainte FK pour ON DELETE CASCADE
+- **Problème 2** : Impossible de réserver après annulation
+  - **Solution** : Nouvelle méthode `existsActiveBookingByTripIdAndStudentId()` qui ignore les réservations CANCELLED
+  - **Fichiers modifiés** : IBookingRepositoryPort, BookingJpaRepository, BookingRepositoryAdapter, BookingService
 
 ### Correction suppression étudiant (27/11/2025) ✅
 - **Problème** : Impossible de supprimer un étudiant ayant utilisé un code whitelist
-  - Erreur : `SQLIntegrityConstraintViolationException` (contrainte de clé étrangère)
-  - Le code restait marqué comme "utilisé" même après suppression
-- **Solution** :
-  - Configuration `ON DELETE SET NULL` sur la relation `usedBy`
-  - Libération automatique du code lors de la suppression (`used=false`)
-  - Le code redevient disponible pour une nouvelle inscription
-- **Migration requise** : Script SQL fourni pour modifier la contrainte FK
+- **Solution** : ON DELETE SET NULL + Libération automatique du code
 - **Fichiers modifiés** : AllowedStudentCode.java, StudentService.java, AllowedStudentCodeService.java
 
 ### Système d'inscription et whitelist (27/11/2025) ✅
 - **Implémenté** : Phases 2, 3, et 4 complètes
-- **Nouvelles fonctionnalités** :
-  - Inscription publique avec validation par whitelist
-  - Gestion admin de la whitelist (CRUD)
-  - Validation admin des étudiants en attente
-  - Champ `approved` dans l'entité Student
-  - Section administration dans la sidebar (visible pour admins)
-- **8 nouveaux fichiers** créés (entités, services, vues)
-- **4 fichiers modifiés** (Student, MainLayout, LoginView, DataInitializer)
+- **Fonctionnalités** : Inscription publique, Whitelist admin, Validation étudiants
+- **8 nouveaux fichiers** créés
 
 ### LogoutButton NullPointerException (27/11/2025) ✅
-- **Problème** : `UI.getCurrent()` retournait `null` après déconnexion
-- **Solution** : Capture de la référence UI avant l'invalidation de session
-- **Fichier** : `ui/component/LogoutButton.java`
+- **Problème** : UI.getCurrent() retournait null après déconnexion
+- **Solution** : Capture UI avant invalidation session
+
+## Améliorations futures
+
+### 🎨 Architecture & Qualité du code
+- **DTO (Data Transfer Objects)** :
+  - Créer des DTOs pour séparer les entités JPA de l'API
+  - Exemples : `TripDTO`, `BookingDTO`, `StudentDTO`
+  - Mapper avec MapStruct ou ModelMapper
+  - Avantages : Sécurité (ne pas exposer les entités), Flexibilité (différentes représentations)
+
+- **Pattern DAO/Repository amélioré** :
+  - Ajouter des spécifications JPA pour requêtes complexes
+  - Créer des query objects réutilisables
+  - Implémenter la pagination pour les grandes listes
+
+- **Validation avancée** :
+  - Bean Validation (JSR-303) sur les DTOs
+  - Validation côté client avec Vaadin Binder
+  - Messages d'erreur personnalisés en français
+
+### 🎨 Interface utilisateur
+
+- **Design System Neobrutalism** :
+  - Couleurs vives et contrastées (jaune, cyan, magenta sur fond blanc/noir)
+  - Bordures épaisses (3-5px) en noir
+  - Ombres portées décalées (`box-shadow: 5px 5px 0px black`)
+  - Typographie bold et uppercase pour les titres
+  - Pas de border-radius (angles à 90°)
+  - Exemples de composants :
+    ```css
+    .neo-button {
+      background: #FFFF00;
+      border: 4px solid #000;
+      box-shadow: 6px 6px 0px #000;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .neo-card {
+      background: #FFF;
+      border: 3px solid #000;
+      box-shadow: 8px 8px 0px #00FFFF;
+    }
+    ```
+
+- **Dialogs pour toutes les actions CRUD** :
+  - ✅ Édition/Suppression trajet (déjà fait avec `TripEditDialog`)
+  - À créer :
+    - `StudentEditDialog` : Éditer un étudiant (admin)
+    - `BookingCancelDialog` : Confirmer annulation de réservation
+    - `TripBookingDialog` : Récapitulatif avant réservation
+    - `WhitelistCodeDialog` : Ajouter/éditer un code whitelist
+    - `StudentApprovalDialog` : Approuver/rejeter avec commentaire
+  - Avantages : UX fluide, pas de navigation, validation immédiate
+
+- **Composants réutilisables** :
+  - `ConfirmDialog` : Dialog générique de confirmation
+  - `FormDialog` : Dialog générique avec formulaire
+  - `StatusBadge` : Badge coloré selon le statut
+  - `AvatarComponent` : Avatar personnalisé avec initiales
+
+### 🚀 Fonctionnalités métier
+
+- **Filtres avancés** :
+  - Recherche par date/heure de départ
+  - Recherche par nombre de places minimum
+  - Recherche par trajet régulier uniquement
+  - Filtres combinés avec Vaadin Grid DataProvider
+
+- **Notifications en temps réel** :
+  - Notification push quand une réservation est acceptée/annulée
+  - Notification quand un nouveau trajet correspond aux critères
+  - Utiliser Vaadin Push (WebSocket) ou Server-Sent Events
+
+- **Système de messages** :
+  - Messagerie entre conducteur et passagers
+  - Entité `Message` avec relation ManyToOne vers Booking
+  - Vue de conversation par réservation
+
+- **Trajets réguliers** :
+  - Exploiter le flag `isRegular`
+  - Créer des trajets récurrents (ex: tous les lundis)
+  - Entité `RecurringTrip` avec pattern (jours, horaire)
+  - Génération automatique des instances de trajets
+
+- **Système d'évaluation** :
+  - Entité `Review` (note + commentaire)
+  - Évaluation conducteur/passager après trajet
+  - Affichage de la note moyenne dans le profil
+
+- **Profil utilisateur** :
+  - Photo de profil uploadable
+  - Préférences (fumeur/non-fumeur, musique, etc.)
+  - Historique des trajets proposés/réservés
+  - Statistiques (km parcourus, CO2 économisé)
+
+### 🔧 Technique
+
+- **Tests** :
+  - Tests unitaires : JUnit 5 + Mockito pour les services
+  - Tests d'intégration : Spring Boot Test + TestContainers (MySQL)
+  - Tests E2E : Vaadin TestBench (Selenium)
+  - Couverture de code : JaCoCo (objectif 80%)
+
+- **Performance** :
+  - Mise en cache avec Spring Cache (@Cacheable)
+  - Lazy loading pour les listes longues
+  - Pagination avec Spring Data (Pageable)
+  - Indexation MySQL sur les colonnes fréquemment recherchées
+
+- **Sécurité** :
+  - Rate limiting pour éviter les abus
+  - Validation stricte des inputs (XSS, SQL injection)
+  - HTTPS en production
+  - Audit log des actions critiques (CRUD)
+
+- **Documentation** :
+  - Swagger/OpenAPI pour l'API REST (si ajoutée)
+  - Diagrammes UML (classes, séquence) avec PlantUML
+  - Guide d'installation détaillé
+  - Vidéo de démonstration
+
+### 🌐 Déploiement
+
+- **Conteneurisation** :
+  - Dockerfile pour l'application
+  - Docker Compose avec MySQL + Spring Boot
+  - Health checks et restart policies
+
+- **CI/CD** :
+  - GitHub Actions pour build + tests automatiques
+  - Déploiement automatique sur Heroku/Railway/Render
+  - Environnements dev/staging/prod
+
+- **Monitoring** :
+  - Spring Boot Actuator pour métriques
+  - Prometheus + Grafana pour monitoring
+  - Logs centralisés avec ELK Stack
 
 ## Documentation technique
 

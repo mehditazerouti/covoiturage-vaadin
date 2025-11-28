@@ -31,6 +31,11 @@ public class TripRepositoryAdapter implements ITripRepositoryPort {
     }
 
     @Override
+    public void deleteById(Long id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public List<Trip> findTripsByDestination(String destination) {
         // Utilisation de la méthode spécifique de l'interface JPA
         return jpaRepository.findByDestinationAddressContainingIgnoreCase(destination);

@@ -3,6 +3,7 @@ package com.example.covoiturage_vaadin.ui.component;
 
 import com.example.covoiturage_vaadin.ui.view.AdminStudentCreationView;
 import com.example.covoiturage_vaadin.ui.view.AdminWhitelistView;
+import com.example.covoiturage_vaadin.ui.view.MyBookingsView;
 import com.example.covoiturage_vaadin.ui.view.PendingStudentsView;
 import com.example.covoiturage_vaadin.ui.view.StudentView;
 import com.example.covoiturage_vaadin.ui.view.TripCreationView;
@@ -58,9 +59,9 @@ public class MainLayout extends AppLayout {
 
         // Section principale (pour tous les utilisateurs)
         SideNav mainNav = new SideNav();
-        mainNav.addItem(new SideNavItem("Annuaire Étudiants", StudentView.class, VaadinIcon.USERS.create()));
         mainNav.addItem(new SideNavItem("Rechercher Trajet", TripSearchView.class, VaadinIcon.SEARCH.create()));
         mainNav.addItem(new SideNavItem("Proposer Trajet", TripCreationView.class, VaadinIcon.CAR.create()));
+        mainNav.addItem(new SideNavItem("Mes Réservations", MyBookingsView.class, VaadinIcon.BOOKMARK.create()));
 
         drawerContent.add(mainNav);
 
@@ -78,9 +79,10 @@ public class MainLayout extends AppLayout {
                 .set("margin", "var(--lumo-space-s) 0");
 
             SideNav adminNav = new SideNav();
-            adminNav.addItem(new SideNavItem("Créer un Étudiant", AdminStudentCreationView.class, VaadinIcon.USER_CHECK.create()));
-            adminNav.addItem(new SideNavItem("Codes Whitelist", AdminWhitelistView.class, VaadinIcon.LIST.create()));
-            adminNav.addItem(new SideNavItem("Étudiants en Attente", PendingStudentsView.class, VaadinIcon.CLOCK.create()));
+            adminNav.addItem(new SideNavItem("Annuaire Étudiants", StudentView.class, VaadinIcon.USERS.create()));
+            adminNav.addItem(new SideNavItem("Créer un Étudiant", AdminStudentCreationView.class, VaadinIcon.USER_CARD.create()));
+            adminNav.addItem(new SideNavItem("Codes Étudiants", AdminWhitelistView.class, VaadinIcon.MODAL_LIST.create()));
+            adminNav.addItem(new SideNavItem("Étudiants en Attente", PendingStudentsView.class, VaadinIcon.HOURGLASS.create()));
 
             drawerContent.add(separator, adminLabel, adminNav);
         }

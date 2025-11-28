@@ -14,6 +14,7 @@ com/example/covoiturage_vaadin/infrastructure/config/VaadinSecurityConfiguration
 com/example/covoiturage_vaadin/ui/view/StudentView.class
 com/example/covoiturage_vaadin/application/services/AllowedStudentCodeService.class
 com/example/covoiturage_vaadin/infrastructure/config/DataInitializer.class
+com/example/covoiturage_vaadin/ui/view/MyBookingsView$1.class
 com/example/covoiturage_vaadin/application/ports/IAllowedStudentCodeRepositoryPort.class
 com/example/covoiturage_vaadin/application/services/StudentService$StudentCreationResult.class
 com/example/covoiturage_vaadin/ui/view/RegisterView.class

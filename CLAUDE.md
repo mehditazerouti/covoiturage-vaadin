@@ -9,22 +9,25 @@
 1. **Domain** (`domain/model/`)
    - `Student` : id, name, email, **studentCode**, **username**, **password** (BCrypt), **role** (USER/ADMIN), enabled, **approved**, createdAt
    - `Trip` : id, departureAddress, destinationAddress, departureTime, totalSeats, availableSeats, isRegular, driver (ManyToOne → Student)
+   - `Booking` : id, trip (ManyToOne → Trip), student (ManyToOne → Student), bookedAt, status (PENDING/CONFIRMED/CANCELLED)
+   - `BookingStatus` : Enum (PENDING, CONFIRMED, CANCELLED)
    - `AllowedStudentCode` : id, studentCode (unique), used, createdAt, createdBy, usedBy (ManyToOne → Student)
-   - Méthodes métier : `Trip.bookSeat()`, `AllowedStudentCode.markAsUsed(Student)`
+   - Méthodes métier : `Trip.bookSeat()`, `Booking.cancel()`, `Booking.isActive()`, `AllowedStudentCode.markAsUsed(Student)`
 
 2. **Application** (`application/`)
-   - **Ports** : `IStudentRepositoryPort`, `ITripRepositoryPort`, `IAllowedStudentCodeRepositoryPort` (interfaces)
+   - **Ports** : `IStudentRepositoryPort`, `ITripRepositoryPort`, `IBookingRepositoryPort`, `IAllowedStudentCodeRepositoryPort` (interfaces)
    - **Services** :
      - `StudentService` : Gestion étudiants
-     - `TripService` : Gestion trajets (auto-assign driver via SecurityContext)
+     - `TripService` : Gestion trajets (auto-assign driver via SecurityContext, update, delete, canEdit)
+     - `BookingService` : Gestion réservations (create, cancel, getMyBookings, getBookingsByTrip)
      - `SecurityContextService` : Abstraction du SecurityContext
      - `AllowedStudentCodeService` : Gestion de la whitelist des codes étudiants
      - `AuthenticationService` : Gestion de l'inscription et approbation des étudiants
    - Services annotés avec `@Transactional(readOnly = true)` pour lectures, `@Transactional` pour écritures
 
 3. **Infrastructure** (`infrastructure/`)
-   - **Adapters** : `StudentRepositoryAdapter`, `TripRepositoryAdapter`, `AllowedStudentCodeRepositoryAdapter` (implémentent les ports)
-   - **JPA Repositories** : `StudentJpaRepository`, `TripJpaRepository`, `AllowedStudentCodeJpaRepository` (Spring Data)
+   - **Adapters** : `StudentRepositoryAdapter`, `TripRepositoryAdapter`, `BookingRepositoryAdapter`, `AllowedStudentCodeRepositoryAdapter` (implémentent les ports)
+   - **JPA Repositories** : `StudentJpaRepository`, `TripJpaRepository`, `BookingJpaRepository`, `AllowedStudentCodeJpaRepository` (Spring Data)
    - **Security** :
      - `VaadinSecurityConfiguration` : Configuration Spring Security pour Vaadin
      - `UserDetailsServiceImpl` : Authentification via Student
@@ -36,7 +39,9 @@
    - **Layout** : `MainLayout` (AppLayout avec sidebar + header + logout)
      - Section navigation principale (tous utilisateurs)
      - Section administration (visible uniquement pour ROLE_ADMIN)
-   - **Components** : `LogoutButton` (✅ corrigé : capture UI avant logout)
+   - **Components** :
+     - `LogoutButton` (✅ corrigé : capture UI avant logout)
+     - `TripEditDialog` (✅ Dialog édition/suppression trajet avec validation)
    - **Views publiques** :
      - `LoginView` (`/login`) : Authentification [@AnonymousAllowed]
        - Lien vers RegisterView
@@ -45,14 +50,23 @@
        - Si code whitelisté → compte activé immédiatement
        - Si code non whitelisté → compte en attente de validation admin
    - **Views utilisateur** [@PermitAll] :
-     - `StudentView` (`/`) : Annuaire étudiants
+     - `TripSearchView` (`/`) : Recherche + Réservation + Modification trajets
+       - Recherche par destination (insensible à la casse)
+       - Bouton "Réserver" pour chaque trajet (avec validation)
+       - Bouton "Modifier" visible pour conducteur OU admin
+       - Texte grisé "—" pour les autres utilisateurs
+     - `TripCreationView` (`/proposer-trajet`) : Formulaire création trajet
+       - ⚠️ Pas de sélection conducteur : **auto-assigné** depuis SecurityContext
+       - Checkbox pour trajets réguliers
+     - `MyBookingsView` (`/mes-reservations`) : Mes réservations
+       - Grid : Trajet, Date/Heure, Conducteur, Places dispo, Réservé le, Statut, Actions
+       - Badge coloré par statut (vert/rouge/gris)
+       - Bouton "Annuler" pour réservations actives
+   - **Views admin** [@RolesAllowed("ADMIN")] :
+     - `StudentView` (`/students`) : Annuaire étudiants
        - Colonne "Actions" (suppression) visible **uniquement pour ROLE_ADMIN**
        - Protection : impossible de se supprimer soi-même
        - Filtrage : n'affiche pas les comptes ADMIN
-     - `TripCreationView` (`/proposer-trajet`) : Formulaire création trajet
-       - ⚠️ Pas de sélection conducteur : **auto-assigné** depuis SecurityContext
-     - `TripSearchView` (`/rechercher-trajet`) : Recherche trajets par destination
-   - **Views admin** [@RolesAllowed("ADMIN")] :
      - `AdminStudentCreationView` (`/admin/create-student`) : Création manuelle d'étudiant par admin
      - `AdminWhitelistView` (`/admin/whitelist`) : Gestion CRUD de la whitelist
        - Grid : code, utilisé, utilisé par, créé par, date, actions
@@ -63,13 +77,22 @@
 
 ## Entités JPA
 
-### Relation importante
+### Relations importantes
 ```java
 // Trip.java
 @ManyToOne(fetch = FetchType.EAGER)
 private Student driver;
+
+// Booking.java
+@ManyToOne(fetch = FetchType.EAGER)
+@OnDelete(action = OnDeleteAction.CASCADE)  // ⚠️ IMPORTANT : Cascade delete
+private Trip trip;
+
+@ManyToOne(fetch = FetchType.EAGER)
+private Student student;
 ```
 **EAGER nécessaire** pour éviter `LazyInitializationException` dans les vues Vaadin
+**CASCADE** sur Booking → Trip pour supprimer automatiquement les réservations quand un trajet est supprimé
 
 ### Modèle d'authentification
 - **Student** est le principal de sécurité (pas d'entité User séparée)
@@ -164,23 +187,80 @@ Code: ADMIN001
 22405100, 22405101, 22405102
 ```
 
-## À implémenter (TODO) - Prochaines étapes
+## ✅ Phase 5 : Système de réservation (IMPLÉMENTÉ 28/11/2025)
 
-### Phase 5 : Système de réservation
-- [ ] Entité `Booking` (id, trip, student, bookedAt, status)
-- [ ] Port + Service `BookingService`
-- [ ] Méthode `TripService.bookTrip(tripId)` utilisant `Trip.bookSeat()`
-- [ ] Bouton "Réserver" dans `TripSearchView`
-- [ ] Vue "Mes réservations"
+### Entités créées
+- ✅ `Booking` : Réservation avec statut
+- ✅ `BookingStatus` : Enum (PENDING, CONFIRMED, CANCELLED)
 
-### Améliorations futures
+### Services & Règles métier
+- ✅ `BookingService.createBooking(tripId)` :
+  - Vérifie qu'un étudiant ne réserve pas son propre trajet
+  - Vérifie qu'il n'a pas déjà une réservation active
+  - Vérifie les places disponibles
+  - Appelle `Trip.bookSeat()` pour décrémenter
+- ✅ `BookingService.cancelBooking(bookingId)` :
+  - Vérifie permissions (propriétaire OU admin)
+  - Re-incrémente les places
+  - Marque le statut CANCELLED
+- ✅ `BookingService.getMyBookings()` : Liste pour l'utilisateur connecté
+- ✅ `BookingService.existsActiveBookingByTripIdAndStudentId()` : Ignorer réservations annulées
+
+### Vues
+- ✅ `TripSearchView` : Bouton "Réserver" fonctionnel
+- ✅ `MyBookingsView` : Liste + Annulation
+
+### Corrections
+- ✅ Cascade DELETE sur Booking → Trip (ON DELETE CASCADE)
+- ✅ Réservation après annulation (vérification des réservations actives uniquement)
+
+## Améliorations futures
+
+### 🎨 Architecture & Code
+- **DTOs (Data Transfer Objects)** :
+  - Séparer les entités JPA de l'API avec des DTOs
+  - Mapper avec MapStruct ou ModelMapper
+  - Exemples : TripDTO, BookingDTO, StudentDTO
+- **Spécifications JPA** pour requêtes complexes
+- **Validation JSR-303** sur les DTOs
+- **Pagination** avec Spring Data Pageable
+
+### 🎨 Interface utilisateur
+- **Design System Neobrutalism** :
+  - Couleurs vives (jaune, cyan, magenta)
+  - Bordures épaisses (3-5px) en noir
+  - Ombres décalées (box-shadow: 5px 5px 0px black)
+  - Pas de border-radius
+  - Typographie bold uppercase
+- **Dialogs pour CRUD** :
+  - ✅ TripEditDialog (fait)
+  - StudentEditDialog
+  - BookingCancelDialog
+  - TripBookingDialog
+  - WhitelistCodeDialog
+- **Composants réutilisables** :
+  - ConfirmDialog générique
+  - FormDialog générique
+  - StatusBadge
+  - AvatarComponent
+
+### 🚀 Fonctionnalités
 - Exploitation du flag `isRegular` (trajets réguliers vs ponctuels)
 - Filtres avancés de recherche (date, horaire, nombre de places)
-- Profil utilisateur éditable
-- Notifications entre étudiants
-- Validation côté client (Binder)
-- Tests unitaires (services)
-- Migration SSO (optionnel)
+- Système de messages (conducteur ↔ passagers)
+- Système d'évaluation (Review avec note + commentaire)
+- Profil utilisateur éditable (photo, préférences, historique)
+- Notifications en temps réel (Vaadin Push / WebSocket)
+
+### 🔧 Technique
+- Tests unitaires (JUnit 5 + Mockito)
+- Tests E2E (Vaadin TestBench)
+- Mise en cache (Spring Cache)
+- Performance (indexation MySQL, lazy loading)
+- Sécurité (rate limiting, HTTPS)
+- CI/CD (GitHub Actions)
+- Conteneurisation (Docker + Docker Compose)
+- Monitoring (Actuator + Prometheus + Grafana)
 
 ## Technologies
 
@@ -193,6 +273,29 @@ Code: ADMIN001
 - Maven
 
 ## Historique des développements
+
+### Phase 5 : Système de réservation (✅ 28/11/2025)
+- **Implémenté** : Système complet de réservation
+- **Nouvelles entités** : Booking, BookingStatus
+- **Nouveau service** : BookingService avec règles métier
+- **Nouvelles vues** : MyBookingsView
+- **Modifications** : TripSearchView (bouton Réserver), TripService (auto-assign driver)
+- **6 nouveaux fichiers**, 2 fichiers modifiés
+
+### Édition/Suppression trajets (✅ 28/11/2025)
+- **Implémenté** : Système d'édition et suppression de trajets
+- **Nouveau composant** : TripEditDialog (formulaire + validation)
+- **Nouveaux services** : TripService.updateTrip(), deleteTrip(), canEditTrip()
+- **Cascade delete** : Suppression trajet = suppression réservations
+- **1 nouveau fichier** (TripEditDialog), 3 fichiers modifiés
+
+### Corrections critiques (✅ 28/11/2025)
+- **Problème 1** : Contrainte FK bloquait suppression trajets avec réservations
+  - Solution : @OnDelete CASCADE sur Booking → Trip
+  - Migration SQL : ALTER TABLE booking ... ON DELETE CASCADE
+- **Problème 2** : Impossible de réserver après annulation
+  - Solution : existsActiveBookingByTripIdAndStudentId() ignore CANCELLED
+  - 4 fichiers modifiés
 
 ### Correction suppression étudiant avec code whitelist (✅ 27/11/2025 20:00)
 - **Problème** : Erreur de contrainte de clé étrangère lors de la suppression d'un étudiant ayant utilisé un code whitelist

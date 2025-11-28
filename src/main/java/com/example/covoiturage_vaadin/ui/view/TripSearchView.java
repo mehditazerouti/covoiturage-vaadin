@@ -1,14 +1,21 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.services.BookingService;
 import com.example.covoiturage_vaadin.application.services.TripService;
 import com.example.covoiturage_vaadin.domain.model.Trip;
+import com.example.covoiturage_vaadin.ui.component.TripEditDialog;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
+import com.example.covoiturage_vaadin.ui.component.MainLayout;
 import com.vaadin.flow.router.Route;
 
 import jakarta.annotation.security.PermitAll;
@@ -16,18 +23,20 @@ import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.PageTitle;
 import java.time.format.DateTimeFormatter;
 
-@Route(value = "rechercher-trajet", layout = MainLayout.class)
+@Route(value = "", layout = MainLayout.class)
 @PageTitle("Rechercher un trajet - Covoiturage")
 @PermitAll
 public class TripSearchView extends VerticalLayout {
 
     private final TripService tripService;
+    private final BookingService bookingService;
     private final Grid<Trip> grid = new Grid<>(Trip.class);
     private final TextField destinationSearchField = new TextField();
 
-    // Le Service est injecté automatiquement par Spring
-    public TripSearchView(TripService tripService) {
+    // Les Services sont injectés automatiquement par Spring
+    public TripSearchView(TripService tripService, BookingService bookingService) {
         this.tripService = tripService;
+        this.bookingService = bookingService;
 
         H2 title = new H2("Rechercher un trajet");
         
@@ -79,22 +88,43 @@ public class TripSearchView extends VerticalLayout {
             
         grid.addColumn(Trip::getAvailableSeats)
             .setHeader("Places restantes");
-            
-        // Ajoutez une colonne d'action pour "Réserver"
+
+        // Colonne pour "Réserver"
         grid.addComponentColumn(trip -> {
             Button reserveBtn = new Button("Réserver");
+            reserveBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
             reserveBtn.addClickListener(e -> {
-                // Ici, vous ajouteriez la logique de réservation et de mise à jour des places
-                // Par souci de simplicité, on n'ajoute qu'une notification pour l'instant
-                com.vaadin.flow.component.notification.Notification.show(
-                    "Fonctionnalité de réservation à implémenter pour le trajet n°" + trip.getId(), 
-                    3000, 
-                    com.vaadin.flow.component.notification.Notification.Position.MIDDLE
-                );
+                try {
+                    bookingService.createBooking(trip.getId());
+                    Notification.show("Réservation effectuée avec succès !", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    updateList(); // Rafraîchir la liste pour mettre à jour les places disponibles
+                } catch (IllegalStateException | IllegalArgumentException ex) {
+                    Notification.show("Erreur : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                }
             });
             return reserveBtn;
-        }).setHeader("Action");
-        
+        }).setHeader("Réserver");
+
+        // Colonne pour "Modifier" (visible uniquement pour le conducteur ou l'admin)
+        grid.addComponentColumn(trip -> {
+            if (tripService.canEditTrip(trip.getId())) {
+                Button editBtn = new Button("Modifier");
+                editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+                editBtn.addClickListener(e -> {
+                    TripEditDialog dialog = new TripEditDialog(tripService, trip, this::updateList);
+                    dialog.open();
+                });
+                return editBtn;
+            }
+            // Afficher un texte grisé si pas de permission
+            Span noAction = new Span("—");
+            noAction.getStyle().set("color", "var(--lumo-disabled-text-color)");
+            noAction.getStyle().set("font-style", "italic");
+            return noAction;
+        }).setHeader("Actions");
+
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
     }
     

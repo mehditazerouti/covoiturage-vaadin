@@ -19,14 +19,16 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Route(value = "", layout = MainLayout.class) // <-- ON UTILISE LE LAYOUT ICI
+@Route(value = "admin/etudiants", layout = MainLayout.class) // <-- ON UTILISE LE LAYOUT ICI
 @PageTitle("Étudiants - Covoiturage")
-@PermitAll
+@RolesAllowed("ADMIN")
 public class StudentView extends VerticalLayout {
 
     private final StudentService studentService;
