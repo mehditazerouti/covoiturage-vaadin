@@ -59,6 +59,43 @@ public class TripService {
         return tripRepository.findAll();
     }
 
+    // Cas d'usage : Recherche avancée avec filtres multiples
+    @Transactional(readOnly = true)
+    public List<Trip> searchTripsAdvanced(String destination, LocalDateTime minDate, Integer minSeats, Boolean isRegular) {
+        List<Trip> trips = tripRepository.findAll();
+
+        // Filtre par destination (insensible à la casse)
+        if (destination != null && !destination.trim().isEmpty()) {
+            String destLower = destination.toLowerCase();
+            trips = trips.stream()
+                .filter(trip -> trip.getDestinationAddress().toLowerCase().contains(destLower))
+                .toList();
+        }
+
+        // Filtre par date minimum
+        if (minDate != null) {
+            trips = trips.stream()
+                .filter(trip -> trip.getDepartureTime().isAfter(minDate) || trip.getDepartureTime().isEqual(minDate))
+                .toList();
+        }
+
+        // Filtre par nombre de places minimum
+        if (minSeats != null && minSeats > 0) {
+            trips = trips.stream()
+                .filter(trip -> trip.getAvailableSeats() >= minSeats)
+                .toList();
+        }
+
+        // Filtre par type de trajet (régulier/ponctuel)
+        if (isRegular != null) {
+            trips = trips.stream()
+                .filter(trip -> trip.isRegular() == isRegular)
+                .toList();
+        }
+
+        return trips;
+    }
+
     // Cas d'usage : Mettre à jour un trajet existant
     @Transactional
     public Trip updateTrip(Long tripId, String departure, String destination, LocalDateTime time, int totalSeats) {

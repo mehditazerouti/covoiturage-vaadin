@@ -2,10 +2,10 @@ package com.example.covoiturage_vaadin.ui.component;
 
 
 import com.example.covoiturage_vaadin.ui.view.AdminStudentCreationView;
+import com.example.covoiturage_vaadin.ui.view.AdminStudentView;
 import com.example.covoiturage_vaadin.ui.view.AdminWhitelistView;
 import com.example.covoiturage_vaadin.ui.view.MyBookingsView;
 import com.example.covoiturage_vaadin.ui.view.PendingStudentsView;
-import com.example.covoiturage_vaadin.ui.view.StudentView;
 import com.example.covoiturage_vaadin.ui.view.TripCreationView;
 import com.example.covoiturage_vaadin.ui.view.TripSearchView;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -79,7 +79,7 @@ public class MainLayout extends AppLayout {
                 .set("margin", "var(--lumo-space-s) 0");
 
             SideNav adminNav = new SideNav();
-            adminNav.addItem(new SideNavItem("Annuaire Étudiants", StudentView.class, VaadinIcon.USERS.create()));
+            adminNav.addItem(new SideNavItem("Annuaire Étudiants", AdminStudentView.class, VaadinIcon.USERS.create()));
             adminNav.addItem(new SideNavItem("Créer un Étudiant", AdminStudentCreationView.class, VaadinIcon.USER_CARD.create()));
             adminNav.addItem(new SideNavItem("Codes Étudiants", AdminWhitelistView.class, VaadinIcon.MODAL_LIST.create()));
             adminNav.addItem(new SideNavItem("Étudiants en Attente", PendingStudentsView.class, VaadinIcon.HOURGLASS.create()));

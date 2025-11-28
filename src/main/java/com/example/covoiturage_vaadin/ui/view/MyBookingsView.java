@@ -3,14 +3,15 @@ package com.example.covoiturage_vaadin.ui.view;
 import com.example.covoiturage_vaadin.application.services.BookingService;
 import com.example.covoiturage_vaadin.domain.model.Booking;
 import com.example.covoiturage_vaadin.domain.model.BookingStatus;
+import com.example.covoiturage_vaadin.ui.component.BookingCancelDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
+import com.example.covoiturage_vaadin.ui.component.StatusBadge;
+import com.example.covoiturage_vaadin.ui.component.TripTypeBadge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -65,24 +66,30 @@ public class MyBookingsView extends VerticalLayout {
             booking.getTrip().getAvailableSeats() + "/" + booking.getTrip().getTotalSeats() + " places"
         ).setHeader("Places dispo").setAutoWidth(true);
 
+        // Colonne Type (Régulier/Ponctuel)
+        grid.addComponentColumn(booking ->
+            new TripTypeBadge(booking.getTrip().isRegular())
+        ).setHeader("Type").setAutoWidth(true);
+
         // Colonne pour la date de réservation
         grid.addColumn(booking ->
             booking.getBookedAt().format(formatter)
         ).setHeader("Réservé le").setAutoWidth(true);
 
         // Colonne pour le statut
-        grid.addComponentColumn(booking -> {
-            Span statusSpan = new Span(getStatusLabel(booking.getStatus()));
-            statusSpan.getElement().getThemeList().add(getStatusBadge(booking.getStatus()));
-            return statusSpan;
-        }).setHeader("Statut").setAutoWidth(true);
+        grid.addComponentColumn(booking ->
+            new StatusBadge(booking.getStatus())
+        ).setHeader("Statut").setAutoWidth(true);
 
         // Colonne Actions
         grid.addComponentColumn(booking -> {
             if (booking.getStatus() == BookingStatus.CONFIRMED || booking.getStatus() == BookingStatus.PENDING) {
                 Button cancelBtn = new Button("Annuler");
                 cancelBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
-                cancelBtn.addClickListener(e -> cancelBooking(booking.getId()));
+                cancelBtn.addClickListener(e -> {
+                    BookingCancelDialog dialog = new BookingCancelDialog(booking, bookingService, this::updateList);
+                    dialog.open();
+                });
                 return cancelBtn;
             }
             Span cancelled = new Span("—");
@@ -94,35 +101,7 @@ public class MyBookingsView extends VerticalLayout {
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
     }
 
-    private void cancelBooking(Long bookingId) {
-        try {
-            bookingService.cancelBooking(bookingId);
-            Notification.show("Réservation annulée avec succès", 3000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            updateList();
-        } catch (IllegalStateException | IllegalArgumentException ex) {
-            Notification.show("Erreur : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-        }
-    }
-
     private void updateList() {
         grid.setItems(bookingService.getMyBookings());
-    }
-
-    private String getStatusLabel(BookingStatus status) {
-        return switch (status) {
-            case PENDING -> "En attente";
-            case CONFIRMED -> "Confirmée";
-            case CANCELLED -> "Annulée";
-        };
-    }
-
-    private String getStatusBadge(BookingStatus status) {
-        return switch (status) {
-            case PENDING -> "badge contrast";
-            case CONFIRMED -> "badge success";
-            case CANCELLED -> "badge error";
-        };
     }
 }

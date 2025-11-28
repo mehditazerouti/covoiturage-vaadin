@@ -1,4 +1,5 @@
 import '@vaadin/polymer-legacy-adapter/style-modules.js';
+import '@vaadin/confirm-dialog/src/vaadin-confirm-dialog.js';
 import '@vaadin/horizontal-layout/src/vaadin-horizontal-layout.js';
 import '@vaadin/app-layout/src/vaadin-app-layout.js';
 import '@vaadin/dialog/src/vaadin-dialog.js';
@@ -18,7 +19,6 @@ import '@vaadin/checkbox-group/src/vaadin-checkbox-group.js';
 import '@vaadin/combo-box/src/vaadin-combo-box.js';
 import 'Frontend/generated/jar-resources/comboBoxConnector.js';
 import '@vaadin/multi-select-combo-box/src/vaadin-multi-select-combo-box.js';
-import '@vaadin/confirm-dialog/src/vaadin-confirm-dialog.js';
 import '@vaadin/context-menu/src/vaadin-context-menu.js';
 import 'Frontend/generated/jar-resources/contextMenuConnector.js';
 import 'Frontend/generated/jar-resources/contextMenuTargetConnector.js';

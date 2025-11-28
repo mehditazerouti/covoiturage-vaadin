@@ -18,7 +18,11 @@
    - **Ports** : `IStudentRepositoryPort`, `ITripRepositoryPort`, `IBookingRepositoryPort`, `IAllowedStudentCodeRepositoryPort` (interfaces)
    - **Services** :
      - `StudentService` : Gestion étudiants
-     - `TripService` : Gestion trajets (auto-assign driver via SecurityContext, update, delete, canEdit)
+     - `TripService` : Gestion trajets
+       - `proposeTrip()` : Auto-assign driver via SecurityContext
+       - `updateTrip()`, `deleteTrip()`, `canEditTrip()` : Édition avec permissions
+       - `searchTrips()` : Recherche simple par destination
+       - `searchTripsAdvanced()` : Recherche avancée avec filtres multiples (destination, date min, places min, type)
      - `BookingService` : Gestion réservations (create, cancel, getMyBookings, getBookingsByTrip)
      - `SecurityContextService` : Abstraction du SecurityContext
      - `AllowedStudentCodeService` : Gestion de la whitelist des codes étudiants
@@ -39,9 +43,15 @@
    - **Layout** : `MainLayout` (AppLayout avec sidebar + header + logout)
      - Section navigation principale (tous utilisateurs)
      - Section administration (visible uniquement pour ROLE_ADMIN)
-   - **Components** :
+   - **Components réutilisables** :
      - `LogoutButton` (✅ corrigé : capture UI avant logout)
      - `TripEditDialog` (✅ Dialog édition/suppression trajet avec validation)
+     - `BookingCancelDialog` (✅ Dialog confirmation annulation réservation avec détails)
+     - `TripBookingDialog` (✅ Dialog confirmation réservation avec récapitulatif)
+     - `WhitelistCodeDialog` (✅ Dialog formulaire ajout code étudiant avec validation)
+     - `StatusBadge` (✅ Badge coloré pour statut réservation : En attente/Confirmée/Annulée)
+     - `TripTypeBadge` (✅ Badge pour type de trajet : Régulier/Ponctuel)
+     - `ConfirmDeleteDialog` (✅ Dialog générique de confirmation de suppression)
    - **Views publiques** :
      - `LoginView` (`/login`) : Authentification [@AnonymousAllowed]
        - Lien vers RegisterView
@@ -51,22 +61,30 @@
        - Si code non whitelisté → compte en attente de validation admin
    - **Views utilisateur** [@PermitAll] :
      - `TripSearchView` (`/`) : Recherche + Réservation + Modification trajets
-       - Recherche par destination (insensible à la casse)
-       - Bouton "Réserver" pour chaque trajet (avec validation)
+       - **Filtres avancés** : destination, date minimum, places minimum, type de trajet (Tous/Réguliers/Ponctuels)
+       - Recherche en temps réel (ValueChangeListener sur tous les filtres)
+       - Badge "Régulier" (vert) / "Ponctuel" (gris) pour chaque trajet
+       - Dialog de confirmation avant réservation avec récapitulatif complet
        - Bouton "Modifier" visible pour conducteur OU admin
+       - Scroll infini pour navigation fluide
        - Texte grisé "—" pour les autres utilisateurs
      - `TripCreationView` (`/proposer-trajet`) : Formulaire création trajet
        - ⚠️ Pas de sélection conducteur : **auto-assigné** depuis SecurityContext
        - Checkbox pour trajets réguliers
      - `MyBookingsView` (`/mes-reservations`) : Mes réservations
-       - Grid : Trajet, Date/Heure, Conducteur, Places dispo, Réservé le, Statut, Actions
-       - Badge coloré par statut (vert/rouge/gris)
-       - Bouton "Annuler" pour réservations actives
+       - Grid : Trajet, Date/Heure, Conducteur, Places dispo, Type, Réservé le, Statut, Actions
+       - Badge coloré par statut : Confirmée (vert), Annulée (rouge), En attente (gris)
+       - Badge type de trajet : Régulier (vert) / Ponctuel (gris)
+       - Dialog de confirmation avant annulation avec détails du trajet
+       - Scroll infini pour navigation fluide
+       - Bouton "Annuler" pour réservations actives uniquement
    - **Views admin** [@RolesAllowed("ADMIN")] :
-     - `StudentView` (`/students`) : Annuaire étudiants
+     - `AdminStudentView` (`/admin/students`) : Annuaire étudiants
        - Colonne "Actions" (suppression) visible **uniquement pour ROLE_ADMIN**
+       - Dialog de confirmation avant suppression
        - Protection : impossible de se supprimer soi-même
-       - Filtrage : n'affiche pas les comptes ADMIN
+       - Filtrage : n'affiche que les étudiants approuvés (approved=true) non-admins
+       - Scroll infini pour navigation fluide
      - `AdminStudentCreationView` (`/admin/create-student`) : Création manuelle d'étudiant par admin
      - `AdminWhitelistView` (`/admin/whitelist`) : Gestion CRUD de la whitelist
        - Grid : code, utilisé, utilisé par, créé par, date, actions
@@ -214,6 +232,31 @@ Code: ADMIN001
 - ✅ Cascade DELETE sur Booking → Trip (ON DELETE CASCADE)
 - ✅ Réservation après annulation (vérification des réservations actives uniquement)
 
+## 🎯 Prochaines étapes prioritaires
+
+### 1. Vue Profil utilisateur (En cours)
+- **Changement d'avatar** : Sélection parmi une liste prédéfinie (fichier avatars.json)
+- **Changement de mot de passe** : Formulaire avec vérification ancien mot de passe + confirmation
+- **Modification nom/email** : Édition des informations personnelles
+- **Code étudiant** : Affichage uniquement (NON modifiable)
+- **Statistiques** : Nombre de trajets proposés, nombre de réservations effectuées
+- **Temps estimé** : 2-3 heures
+
+### 2. Design System Neobrutalism
+- **Couleurs vives** : Jaune (#FFFF00), Cyan (#00FFFF), Magenta (#FF00FF)
+- **Bordures épaisses** : 3-5px en noir
+- **Ombres décalées** : `box-shadow: 5px 5px 0px black`
+- **Typographie** : Bold et uppercase pour titres
+- **Pas de border-radius** : Angles à 90°
+- **Temps estimé** : 2-3 heures
+
+### 3. Validation JSR-303
+- **Bean Validation** sur entités et formulaires
+- Annotations : `@NotBlank`, `@Email`, `@Size(min, max)`, `@Min`, `@Max`, `@Pattern`
+- Messages d'erreur personnalisés en français
+- Validation automatique côté serveur
+- **Temps estimé** : 1-2 heures
+
 ## Améliorations futures
 
 ### 🎨 Architecture & Code
@@ -222,34 +265,19 @@ Code: ADMIN001
   - Mapper avec MapStruct ou ModelMapper
   - Exemples : TripDTO, BookingDTO, StudentDTO
 - **Spécifications JPA** pour requêtes complexes
-- **Validation JSR-303** sur les DTOs
-- **Pagination** avec Spring Data Pageable
 
 ### 🎨 Interface utilisateur
-- **Design System Neobrutalism** :
-  - Couleurs vives (jaune, cyan, magenta)
-  - Bordures épaisses (3-5px) en noir
-  - Ombres décalées (box-shadow: 5px 5px 0px black)
-  - Pas de border-radius
-  - Typographie bold uppercase
-- **Dialogs pour CRUD** :
-  - ✅ TripEditDialog (fait)
+- **Autres dialogs CRUD** :
   - StudentEditDialog
-  - BookingCancelDialog
-  - TripBookingDialog
-  - WhitelistCodeDialog
-- **Composants réutilisables** :
-  - ConfirmDialog générique
+  - StudentApprovalDialog (approuver/rejeter avec commentaire)
   - FormDialog générique
-  - StatusBadge
-  - AvatarComponent
+- **AvatarComponent personnalisé** : Avatar avec initiales et couleurs dynamiques
 
 ### 🚀 Fonctionnalités
-- Exploitation du flag `isRegular` (trajets réguliers vs ponctuels)
-- Filtres avancés de recherche (date, horaire, nombre de places)
+- ✅ Exploitation du flag `isRegular` (fait : badges + filtres)
+- ✅ Filtres avancés de recherche (fait : destination, date, places, type)
 - Système de messages (conducteur ↔ passagers)
 - Système d'évaluation (Review avec note + commentaire)
-- Profil utilisateur éditable (photo, préférences, historique)
 - Notifications en temps réel (Vaadin Push / WebSocket)
 
 ### 🔧 Technique
@@ -273,6 +301,27 @@ Code: ADMIN001
 - Maven
 
 ## Historique des développements
+
+### Composants réutilisables + Filtres avancés + Badges (✅ 28/11/2025 15:40)
+- **Implémenté** : Refactorisation majeure avec composants réutilisables
+- **Nouveaux composants** :
+  - `StatusBadge` : Badge coloré pour statuts de réservation (Confirmée/Annulée/En attente)
+  - `TripTypeBadge` : Badge pour type de trajet (Régulier/Ponctuel)
+  - `ConfirmDeleteDialog` : Dialog générique de confirmation de suppression avec gestion d'erreurs
+  - `BookingCancelDialog` : Dialog avec détails du trajet avant annulation
+  - `TripBookingDialog` : Dialog avec récapitulatif complet avant réservation
+  - `WhitelistCodeDialog` : Dialog formulaire pour ajout de code avec validation
+- **Recherche avancée** :
+  - Nouveau service `TripService.searchTripsAdvanced()` avec 4 filtres combinables
+  - Filtres : destination, date minimum, places minimum, type de trajet
+  - Recherche en temps réel avec ValueChangeListener
+- **Vues refactorisées** :
+  - `TripSearchView` : Utilise TripTypeBadge + TripBookingDialog + filtres avancés
+  - `MyBookingsView` : Utilise StatusBadge + TripTypeBadge + BookingCancelDialog
+  - `AdminStudentView` : Utilise ConfirmDeleteDialog (renommé de StudentView)
+  - `AdminWhitelistView` : Utilise ConfirmDeleteDialog + WhitelistCodeDialog
+- **Performance** : Scroll infini Vaadin (pas de pagination manuelle nécessaire)
+- **7 nouveaux fichiers** (composants), **5 fichiers modifiés** (vues refactorisées)
 
 ### Phase 5 : Système de réservation (✅ 28/11/2025)
 - **Implémenté** : Système complet de réservation

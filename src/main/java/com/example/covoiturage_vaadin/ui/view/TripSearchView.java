@@ -3,16 +3,19 @@ package com.example.covoiturage_vaadin.ui.view;
 import com.example.covoiturage_vaadin.application.services.BookingService;
 import com.example.covoiturage_vaadin.application.services.TripService;
 import com.example.covoiturage_vaadin.domain.model.Trip;
+import com.example.covoiturage_vaadin.ui.component.TripBookingDialog;
 import com.example.covoiturage_vaadin.ui.component.TripEditDialog;
+import com.example.covoiturage_vaadin.ui.component.TripTypeBadge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
 import com.vaadin.flow.router.Route;
@@ -31,6 +34,9 @@ public class TripSearchView extends VerticalLayout {
     private final BookingService bookingService;
     private final Grid<Trip> grid = new Grid<>(Trip.class);
     private final TextField destinationSearchField = new TextField();
+    private final DateTimePicker dateFilter = new DateTimePicker();
+    private final IntegerField seatsFilter = new IntegerField();
+    private final Select<String> typeFilter = new Select<>();
 
     // Les Services sont injectés automatiquement par Spring
     public TripSearchView(TripService tripService, BookingService bookingService) {
@@ -38,32 +44,67 @@ public class TripSearchView extends VerticalLayout {
         this.bookingService = bookingService;
 
         H2 title = new H2("Rechercher un trajet");
-        
+
         // Configuration de la grille
         configureGrid();
 
         // Configuration du formulaire de recherche
         configureSearchForm();
-        
+
         // Afficher tous les trajets au démarrage (ou aucun, selon préférence)
-        updateList(); 
+        updateList();
 
         // Disposition
-        add(title, new HorizontalLayout(destinationSearchField, createSearchButton()), grid);
+        HorizontalLayout filters = createFiltersLayout();
+        add(title, filters, grid);
     }
     
     private void configureSearchForm() {
-        destinationSearchField.setPlaceholder("Entrez la destination...");
+        // Champ destination
+        destinationSearchField.setPlaceholder("Destination...");
         destinationSearchField.setClearButtonVisible(true);
-        // Ajoute un écouteur pour déclencher la recherche lorsque l'utilisateur tape ENTER
+        destinationSearchField.setWidth("200px");
         destinationSearchField.addValueChangeListener(e -> updateList());
+
+        // Filtre date/heure
+        dateFilter.setLabel("À partir du");
+        dateFilter.setDatePlaceholder("Date minimum");
+        dateFilter.setTimePlaceholder("Heure");
+        dateFilter.setWidth("220px");
+        dateFilter.addValueChangeListener(e -> updateList());
+
+        // Filtre places minimum
+        seatsFilter.setLabel("Places min.");
+        seatsFilter.setPlaceholder("Min");
+        seatsFilter.setClearButtonVisible(true);
+        seatsFilter.setMin(1);
+        seatsFilter.setMax(10);
+        seatsFilter.setWidth("120px");
+        seatsFilter.addValueChangeListener(e -> updateList());
+
+        // Filtre type de trajet
+        typeFilter.setLabel("Type de trajet");
+        typeFilter.setItems("Tous", "Réguliers", "Ponctuels");
+        typeFilter.setValue("Tous");
+        typeFilter.setWidth("150px");
+        typeFilter.addValueChangeListener(e -> updateList());
     }
-    
-    private Button createSearchButton() {
+
+    private HorizontalLayout createFiltersLayout() {
         Button searchButton = new Button("Rechercher");
-        // Ajoute un écouteur pour déclencher la recherche sur clic
+        searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         searchButton.addClickListener(e -> updateList());
-        return searchButton;
+
+        HorizontalLayout layout = new HorizontalLayout(
+            destinationSearchField,
+            dateFilter,
+            seatsFilter,
+            typeFilter,
+            searchButton
+        );
+        layout.setDefaultVerticalComponentAlignment(Alignment.END);
+        layout.setWidthFull();
+        return layout;
     }
 
     private void configureGrid() {
@@ -84,24 +125,22 @@ public class TripSearchView extends VerticalLayout {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         grid.addColumn(trip -> trip.getDepartureTime().format(formatter))
             .setHeader("Date & Heure");
-            
+
         grid.addColumn(Trip::getAvailableSeats)
             .setHeader("Places restantes");
+
+        // Colonne Type (Régulier/Ponctuel)
+        grid.addComponentColumn(trip ->
+            new TripTypeBadge(trip.isRegular())
+        ).setHeader("Type").setAutoWidth(true);
 
         // Colonne pour "Réserver"
         grid.addComponentColumn(trip -> {
             Button reserveBtn = new Button("Réserver");
             reserveBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
             reserveBtn.addClickListener(e -> {
-                try {
-                    bookingService.createBooking(trip.getId());
-                    Notification.show("Réservation effectuée avec succès !", 3000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                    updateList(); // Rafraîchir la liste pour mettre à jour les places disponibles
-                } catch (IllegalStateException | IllegalArgumentException ex) {
-                    Notification.show("Erreur : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                }
+                TripBookingDialog dialog = new TripBookingDialog(trip, bookingService, this::updateList);
+                dialog.open();
             });
             return reserveBtn;
         }).setHeader("Réserver");
@@ -128,14 +167,24 @@ public class TripSearchView extends VerticalLayout {
     }
     
     private void updateList() {
-        String filterText = destinationSearchField.getValue();
-        
-        if (filterText != null && !filterText.trim().isEmpty()) {
-            // APPEL AU CAS D'USAGE (COUCHE APPLICATION)
-            grid.setItems(tripService.searchTrips(filterText));
-        } else {
-            // Afficher tous les trajets si le champ est vide
-            grid.setItems(tripService.findAllTrips());
+        // Récupérer les valeurs des filtres
+        String destination = destinationSearchField.getValue();
+
+        // Convertir LocalDateTime en LocalDateTime pour le filtre de date
+        java.time.LocalDateTime minDate = dateFilter.getValue();
+
+        Integer minSeats = seatsFilter.getValue();
+
+        // Convertir la sélection du type en Boolean (null = tous)
+        Boolean isRegular = null;
+        String typeValue = typeFilter.getValue();
+        if ("Réguliers".equals(typeValue)) {
+            isRegular = true;
+        } else if ("Ponctuels".equals(typeValue)) {
+            isRegular = false;
         }
+
+        // Appel à la recherche avancée
+        grid.setItems(tripService.searchTripsAdvanced(destination, minDate, minSeats, isRegular));
     }
 }

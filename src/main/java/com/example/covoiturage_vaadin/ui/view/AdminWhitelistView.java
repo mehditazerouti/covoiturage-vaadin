@@ -3,22 +3,19 @@ package com.example.covoiturage_vaadin.ui.view;
 import com.example.covoiturage_vaadin.application.services.AllowedStudentCodeService;
 import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.domain.model.AllowedStudentCode;
+import com.example.covoiturage_vaadin.ui.component.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
+import com.example.covoiturage_vaadin.ui.component.WhitelistCodeDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
@@ -122,81 +119,23 @@ public class AdminWhitelistView extends VerticalLayout {
             deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
             deleteBtn.setEnabled(!code.isUsed()); // Désactivé si déjà utilisé
             deleteBtn.setTooltipText(code.isUsed() ? "Impossible de supprimer un code utilisé" : "Supprimer");
-            deleteBtn.addClickListener(e -> confirmDelete(code));
+            deleteBtn.addClickListener(e -> {
+                ConfirmDeleteDialog dialog = new ConfirmDeleteDialog(
+                    "Supprimer le code",
+                    "Voulez-vous vraiment supprimer le code \"" + code.getStudentCode() + "\" ?",
+                    () -> codeService.deleteCode(code),
+                    this::refreshGrid
+                );
+                dialog.open();
+            });
             return deleteBtn;
         }).setHeader("Actions").setAutoWidth(true);
     }
 
     private void openAddCodeDialog() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Ajouter un code étudiant");
-
-        TextField codeField = new TextField("Code étudiant");
-        codeField.setPlaceholder("Ex: 22405100");
-        codeField.setWidthFull();
-
-        Button saveButton = new Button("Ajouter", e -> {
-            String code = codeField.getValue();
-
-            if (code == null || code.trim().isEmpty()) {
-                Notification.show("Veuillez entrer un code étudiant", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-
-            try {
-                String username = securityContext.getCurrentUsername().orElse("UNKNOWN");
-                codeService.addAllowedCode(code.trim(), username);
-
-                Notification.show("✅ Code ajouté avec succès", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
-                refreshGrid();
-                dialog.close();
-            } catch (IllegalArgumentException ex) {
-                Notification.show("❌ Erreur : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-        Button cancelButton = new Button("Annuler", e -> dialog.close());
-
-        HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
-        buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-
-        VerticalLayout layout = new VerticalLayout(codeField, buttons);
-        layout.setPadding(false);
-        layout.setSpacing(true);
-
-        dialog.add(layout);
+        String username = securityContext.getCurrentUsername().orElse("UNKNOWN");
+        WhitelistCodeDialog dialog = new WhitelistCodeDialog(codeService, username, this::refreshGrid);
         dialog.open();
-    }
-
-    private void confirmDelete(AllowedStudentCode code) {
-        ConfirmDialog confirmDialog = new ConfirmDialog();
-        confirmDialog.setHeader("Supprimer le code");
-        confirmDialog.setText("Voulez-vous vraiment supprimer le code \"" + code.getStudentCode() + "\" ?");
-
-        confirmDialog.setCancelable(true);
-        confirmDialog.setCancelText("Annuler");
-
-        confirmDialog.setConfirmText("Supprimer");
-        confirmDialog.setConfirmButtonTheme("error primary");
-
-        confirmDialog.addConfirmListener(event -> {
-            try {
-                codeService.deleteCode(code);
-                Notification.show("✅ Code supprimé avec succès", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                refreshGrid();
-            } catch (Exception e) {
-                Notification.show("❌ Erreur : " + e.getMessage(), 5000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-
-        confirmDialog.open();
     }
 
     private void refreshGrid() {

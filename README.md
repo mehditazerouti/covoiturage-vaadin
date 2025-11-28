@@ -35,33 +35,48 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
 
 ### ✅ Gestion des trajets
 - **Proposer un trajet** : Formulaire avec auto-assignation du conducteur connecté
-- **Rechercher des trajets** : Recherche par destination (insensible à la casse)
+- **Recherche avancée de trajets** :
+  - **4 filtres combinables** : destination, date minimum, places minimum, type de trajet (Tous/Réguliers/Ponctuels)
+  - Recherche en temps réel (mise à jour automatique à chaque modification de filtre)
+  - Badge visuel "Régulier" (vert) / "Ponctuel" (gris) pour chaque trajet
+  - Dialog de confirmation avec récapitulatif complet avant réservation
 - **Modifier/Supprimer un trajet** : Réservé au conducteur OU admin
   - Dialog d'édition avec validation (impossible de réduire les places en dessous des réservations)
   - Suppression avec cascade automatique des réservations associées
-- **Support des trajets réguliers** : Flag `isRegular` pour distinguer trajets ponctuels/réguliers
+- **Support des trajets réguliers** : Flag `isRegular` pleinement exploité avec badge et filtre
 
 ### ✅ Système de réservation (Phase 5 complète)
 - **Réserver un trajet** : Bouton "Réserver" dans la recherche de trajets
+  - Dialog de confirmation avec récapitulatif : trajet, date, conducteur, places, type
   - Vérification automatique : pas son propre trajet, pas de double réservation active, places disponibles
   - Décrémentation automatique des places disponibles
 - **Mes réservations** : Vue dédiée avec liste complète
-  - Affichage : Trajet, Date/Heure, Conducteur, Places disponibles, Date de réservation, Statut
+  - Affichage : Trajet, Date/Heure, Conducteur, Places disponibles, Type, Date de réservation, Statut
   - Badge coloré par statut (vert=Confirmée, rouge=Annulée, gris=En attente)
-  - Action "Annuler" pour réservations actives
+  - Badge type de trajet (vert=Régulier, gris=Ponctuel)
+  - Dialog de confirmation avant annulation avec détails du trajet
+  - Action "Annuler" pour réservations actives uniquement
 - **Annulation** : Re-incrémentation automatique des places + possibilité de re-réserver
 - **Règles métier** :
   - Un étudiant ne peut pas réserver son propre trajet
   - Un étudiant ne peut avoir qu'une seule réservation active par trajet
   - Les réservations annulées ne bloquent pas une nouvelle réservation
 
-### ✅ Interface moderne
+### ✅ Interface moderne & Composants réutilisables
 - Layout principal avec **sidebar navigation** (Vaadin AppLayout)
 - **Section utilisateur** : Rechercher trajet, Proposer trajet, Mes réservations
 - **Section admin** : Annuaire étudiants, Créer étudiant, Codes étudiants, Étudiants en attente
 - Navigation responsive avec drawer toggle
 - Bouton de déconnexion dans la sidebar
-- Dialogs modaux pour édition/suppression de trajets
+- **Composants réutilisables** :
+  - `StatusBadge` : Badge coloré pour statuts de réservation
+  - `TripTypeBadge` : Badge pour type de trajet (Régulier/Ponctuel)
+  - `ConfirmDeleteDialog` : Dialog générique de confirmation de suppression
+  - `BookingCancelDialog` : Dialog d'annulation avec détails
+  - `TripBookingDialog` : Dialog de réservation avec récapitulatif
+  - `WhitelistCodeDialog` : Dialog d'ajout de code avec validation
+  - `TripEditDialog` : Dialog d'édition/suppression de trajet
+- **Performance** : Scroll infini Vaadin (chargement progressif automatique)
 
 ## Stack technique
 - **Frontend** : Vaadin 24.2.0
@@ -231,6 +246,29 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 
 ## Historique des développements
 
+### Composants réutilisables + Filtres avancés + Badges (28/11/2025 15:40) ✅
+- **Implémenté** : Refactorisation majeure pour améliorer la maintenabilité et l'UX
+- **7 nouveaux composants réutilisables** :
+  - `StatusBadge` : Badge coloré pour statuts de réservation (Confirmée/Annulée/En attente)
+  - `TripTypeBadge` : Badge pour type de trajet (Régulier/Ponctuel)
+  - `ConfirmDeleteDialog` : Dialog générique de confirmation de suppression avec gestion d'erreurs automatique
+  - `BookingCancelDialog` : Dialog avec détails complets du trajet avant annulation
+  - `TripBookingDialog` : Dialog avec récapitulatif (trajet, date, conducteur, places, type) avant réservation
+  - `WhitelistCodeDialog` : Dialog formulaire pour ajout de code avec validation (min 5 caractères, support touche ENTER)
+  - `TripEditDialog` : Dialog d'édition/suppression de trajet (déjà existant)
+- **Recherche avancée de trajets** :
+  - Nouveau service `TripService.searchTripsAdvanced()` avec 4 filtres combinables
+  - Filtres : destination (insensible à la casse), date minimum (DateTimePicker), places minimum (IntegerField), type de trajet (Select: Tous/Réguliers/Ponctuels)
+  - Recherche en temps réel : ValueChangeListener sur tous les filtres
+  - Interface horizontale avec tous les filtres alignés + bouton "Rechercher"
+- **Vues refactorisées** (5 fichiers modifiés) :
+  - `TripSearchView` : Utilise TripTypeBadge + TripBookingDialog + filtres avancés
+  - `MyBookingsView` : Utilise StatusBadge + TripTypeBadge + BookingCancelDialog
+  - `AdminStudentView` : Utilise ConfirmDeleteDialog (renommé de StudentView, route changée)
+  - `AdminWhitelistView` : Utilise ConfirmDeleteDialog + WhitelistCodeDialog (code simplifié de 40 à 3 lignes)
+- **Performance** : Scroll infini Vaadin (pas de pagination manuelle, chargement progressif automatique)
+- **Code quality** : Suppression de code dupliqué (méthodes getStatusLabel/Badge dans MyBookingsView)
+
 ### Phase 5 : Système de réservation (28/11/2025) ✅
 - **Implémenté** : Système complet de réservation de trajets
 - **Nouvelles entités** :
@@ -283,6 +321,28 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 - **Problème** : UI.getCurrent() retournait null après déconnexion
 - **Solution** : Capture UI avant invalidation session
 
+## 🎯 Prochaines étapes prioritaires
+
+### 1. Vue Profil utilisateur (En cours)
+- **Changement d'avatar** : Sélection parmi une liste prédéfinie d'avatars
+- **Changement de mot de passe** : Formulaire sécurisé avec confirmation
+- **Modification nom/email** : Édition des informations personnelles
+- **Code étudiant** : Affichage uniquement (non modifiable)
+- **Statistiques** : Nombre de trajets proposés, réservations effectuées
+
+### 2. Design System Neobrutalism
+- **Couleurs vives** : Jaune (#FFFF00), Cyan (#00FFFF), Magenta (#FF00FF)
+- **Bordures épaisses** : 3-5px en noir
+- **Ombres décalées** : `box-shadow: 5px 5px 0px black`
+- **Typographie** : Bold et uppercase
+- **Pas de border-radius** : Angles à 90°
+
+### 3. Validation JSR-303
+- **Bean Validation** sur les entités et DTOs
+- Validation automatique côté serveur
+- Messages d'erreur personnalisés en français
+- Annotations : `@NotBlank`, `@Email`, `@Size`, `@Min`, `@Max`, etc.
+
 ## Améliorations futures
 
 ### 🎨 Architecture & Qualité du code
@@ -295,60 +355,17 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 - **Pattern DAO/Repository amélioré** :
   - Ajouter des spécifications JPA pour requêtes complexes
   - Créer des query objects réutilisables
-  - Implémenter la pagination pour les grandes listes
-
-- **Validation avancée** :
-  - Bean Validation (JSR-303) sur les DTOs
-  - Validation côté client avec Vaadin Binder
-  - Messages d'erreur personnalisés en français
 
 ### 🎨 Interface utilisateur
 
-- **Design System Neobrutalism** :
-  - Couleurs vives et contrastées (jaune, cyan, magenta sur fond blanc/noir)
-  - Bordures épaisses (3-5px) en noir
-  - Ombres portées décalées (`box-shadow: 5px 5px 0px black`)
-  - Typographie bold et uppercase pour les titres
-  - Pas de border-radius (angles à 90°)
-  - Exemples de composants :
-    ```css
-    .neo-button {
-      background: #FFFF00;
-      border: 4px solid #000;
-      box-shadow: 6px 6px 0px #000;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
-    .neo-card {
-      background: #FFF;
-      border: 3px solid #000;
-      box-shadow: 8px 8px 0px #00FFFF;
-    }
-    ```
-
-- **Dialogs pour toutes les actions CRUD** :
-  - ✅ Édition/Suppression trajet (déjà fait avec `TripEditDialog`)
-  - À créer :
-    - `StudentEditDialog` : Éditer un étudiant (admin)
-    - `BookingCancelDialog` : Confirmer annulation de réservation
-    - `TripBookingDialog` : Récapitulatif avant réservation
-    - `WhitelistCodeDialog` : Ajouter/éditer un code whitelist
-    - `StudentApprovalDialog` : Approuver/rejeter avec commentaire
-  - Avantages : UX fluide, pas de navigation, validation immédiate
-
-- **Composants réutilisables** :
-  - `ConfirmDialog` : Dialog générique de confirmation
+- **Autres dialogs CRUD** :
+  - `StudentEditDialog` : Éditer un étudiant (admin)
+  - `StudentApprovalDialog` : Approuver/rejeter avec commentaire
   - `FormDialog` : Dialog générique avec formulaire
-  - `StatusBadge` : Badge coloré selon le statut
-  - `AvatarComponent` : Avatar personnalisé avec initiales
+
+- **AvatarComponent personnalisé** : Avatar avec initiales et couleurs dynamiques
 
 ### 🚀 Fonctionnalités métier
-
-- **Filtres avancés** :
-  - Recherche par date/heure de départ
-  - Recherche par nombre de places minimum
-  - Recherche par trajet régulier uniquement
-  - Filtres combinés avec Vaadin Grid DataProvider
 
 - **Notifications en temps réel** :
   - Notification push quand une réservation est acceptée/annulée
