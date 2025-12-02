@@ -54,27 +54,35 @@
    - **Config** :
      - `DataInitializer` : Compte admin par défaut + codes étudiants whitelistés (22405100, 22405101, 22405102)
 
-4. **UI** (`ui/`)
+4. **UI** (`ui/`) - ✅ **Organisation par packages** (02/12/2025)
    - **Layout** : `MainLayout` (AppLayout avec sidebar + header + logout)
      - Section navigation principale (tous utilisateurs)
      - Section administration (visible uniquement pour ROLE_ADMIN)
-   - **Components réutilisables** :
-     - `LogoutButton` (✅ corrigé : capture UI avant logout)
-     - `TripEditDialog` (✅ Dialog édition/suppression trajet avec validation - **utilise TripDTO**)
-     - `BookingCancelDialog` (✅ Dialog confirmation annulation réservation - **utilise BookingDTO**)
-     - `TripBookingDialog` (✅ Dialog confirmation réservation - **utilise TripDTO**)
-     - `WhitelistCodeDialog` (✅ Dialog formulaire ajout code étudiant avec validation)
-     - `StatusBadge` (✅ Badge coloré pour statut réservation : En attente/Confirmée/Annulée)
-     - `TripTypeBadge` (✅ Badge pour type de trajet : Régulier/Ponctuel)
-     - `ConfirmDeleteDialog` (✅ Dialog générique de confirmation de suppression)
-   - **Views publiques** :
-     - `LoginView` (`/login`) : Authentification [@AnonymousAllowed]
+     - Bouton profil dans le header (icône VaadinIcon.USER)
+   - **Components** (`component/`) :
+     - `MainLayout` : Layout principal avec sidebar et header
+     - `LogoutButton` : Bouton déconnexion (✅ corrigé : capture UI avant logout)
+     - `SearchBar` : Barre de recherche avec debounce 300ms
+   - **Dialogs** (`component/dialog/`) :
+     - `ProfileDialog` : Dialog profil utilisateur complet - **utilise ProfileDTO**
+     - `AvatarSelectionDialog` : Sélection d'avatar (USER, MALE, FEMALE)
+     - `ChangePasswordDialog` : Changement de mot de passe sécurisé
+     - `TripEditDialog` : Dialog édition/suppression trajet - **utilise TripDTO**
+     - `TripBookingDialog` : Dialog confirmation réservation - **utilise TripDTO**
+     - `BookingCancelDialog` : Dialog confirmation annulation - **utilise BookingDTO**
+     - `WhitelistCodeDialog` : Dialog ajout code étudiant avec validation
+     - `ConfirmDeleteDialog` : Dialog générique de confirmation de suppression
+   - **Badges** (`component/badge/`) :
+     - `StatusBadge` : Badge coloré pour statut réservation (En attente/Confirmée/Annulée)
+     - `TripTypeBadge` : Badge pour type de trajet (Régulier/Ponctuel)
+   - **Views Auth** (`view/auth/`) [@AnonymousAllowed] :
+     - `LoginView` (`/login`) : Authentification
        - Lien vers RegisterView
        - Traduction française du formulaire
-     - `RegisterView` (`/register`) : Inscription publique [@AnonymousAllowed] - **utilise StudentDTO**
+     - `RegisterView` (`/register`) : Inscription publique - **utilise StudentDTO**
        - Si code whitelisté → compte activé immédiatement
        - Si code non whitelisté → compte en attente de validation admin
-   - **Views utilisateur** [@PermitAll] :
+   - **Views Trip** (`view/trip/`) [@PermitAll] :
      - `TripSearchView` (`/`) : Recherche + Réservation + Modification trajets - **utilise Grid<TripDTO>**
        - **Filtres avancés** : destination, date minimum, places minimum, type de trajet (Tous/Réguliers/Ponctuels)
        - Recherche en temps réel (ValueChangeListener sur tous les filtres)
@@ -93,7 +101,7 @@
        - Dialog de confirmation avant annulation avec détails du trajet
        - Scroll infini pour navigation fluide
        - Bouton "Annuler" pour réservations actives uniquement
-   - **Views admin** [@RolesAllowed("ADMIN")] :
+   - **Views Admin** (`view/admin/`) [@RolesAllowed("ADMIN")] :
      - `AdminStudentView` (`/admin/students`) : Annuaire étudiants - **utilise Grid<StudentDTO>**
        - Colonne "Actions" (suppression) visible **uniquement pour ROLE_ADMIN**
        - Dialog de confirmation avant suppression
@@ -269,44 +277,48 @@ Code: ADMIN001
 
 ## 🎯 Prochaines étapes prioritaires
 
-### 1. Vue Profil utilisateur (En cours)
-- **Changement d'avatar** : Sélection parmi une liste prédéfinie (fichier avatars.json)
-- **Changement de mot de passe** : Formulaire avec vérification ancien mot de passe + confirmation
-- **Modification nom/email** : Édition des informations personnelles
-- **Code étudiant** : Affichage uniquement (NON modifiable)
-- **Statistiques** : Nombre de trajets proposés, nombre de réservations effectuées
-- **Temps estimé** : 2-3 heures
+### 1. ✅ Vue Profil utilisateur (TERMINÉ 02/12/2025)
+- **✅ Bouton profil** : Intégré dans le header (icône VaadinIcon.USER)
+- **✅ Affichage complet** : Nom, email, avatar, code étudiant, statistiques, date de création
+- **✅ Modification avatar** : Sélection parmi 3 icônes Vaadin (USER, MALE, FEMALE)
+- **✅ Changement de mot de passe** : Dialog sécurisé avec vérification + confirmation
+- **✅ Modification nom/email** : Édition inline avec validation d'unicité
+- **✅ Statistiques** : Trajets proposés + réservations effectuées
+- **🔮 Évolution future** : Migration vers upload d'images personnalisées
 
-### 2. Design System Neobrutalism
+### 2. ✅ Organisation UI par packages (TERMINÉ 02/12/2025)
+- **✅ 5 nouveaux packages créés** : dialog/, badge/, auth/, admin/, trip/
+- **✅ 19 fichiers déplacés** et organisés logiquement
+- **✅ Navigation facilitée** : Structure claire et maintenable
+
+### 3. Design System Neobrutalism
 - **Couleurs vives** : Jaune (#FFFF00), Cyan (#00FFFF), Magenta (#FF00FF)
 - **Bordures épaisses** : 3-5px en noir
 - **Ombres décalées** : `box-shadow: 5px 5px 0px black`
 - **Typographie** : Bold et uppercase pour titres
 - **Pas de border-radius** : Angles à 90°
-- **Temps estimé** : 2-3 heures
 
-### 3. Validation JSR-303
+### 4. Validation JSR-303
 - **Bean Validation** sur entités et formulaires
 - Annotations : `@NotBlank`, `@Email`, `@Size(min, max)`, `@Min`, `@Max`, `@Pattern`
 - Messages d'erreur personnalisés en français
 - Validation automatique côté serveur
-- **Temps estimé** : 1-2 heures
 
 ## Améliorations futures
 
 ### 🎨 Architecture & Code
-- **DTOs (Data Transfer Objects)** :
-  - Séparer les entités JPA de l'API avec des DTOs
-  - Mapper avec MapStruct ou ModelMapper
-  - Exemples : TripDTO, BookingDTO, StudentDTO
+- ✅ **DTOs (Data Transfer Objects)** : IMPLÉMENTÉ (7 DTOs créés)
 - **Spécifications JPA** pour requêtes complexes
 
 ### 🎨 Interface utilisateur
+- ✅ **Organisation par packages** : IMPLÉMENTÉ (dialog/, badge/, auth/, admin/, trip/)
+- ✅ **ProfileDialog** : IMPLÉMENTÉ (profil utilisateur complet)
+- ✅ **AvatarSelectionDialog** : IMPLÉMENTÉ (3 icônes Vaadin)
 - **Autres dialogs CRUD** :
-  - StudentEditDialog
+  - StudentEditDialog (modification étudiant par admin)
   - StudentApprovalDialog (approuver/rejeter avec commentaire)
   - FormDialog générique
-- **AvatarComponent personnalisé** : Avatar avec initiales et couleurs dynamiques
+- **🔮 AvatarComponent personnalisé** : Upload d'images personnalisées (migration future)
 
 ### 🚀 Fonctionnalités
 - ✅ Exploitation du flag `isRegular` (fait : badges + filtres)
@@ -337,12 +349,55 @@ Code: ADMIN001
 
 ## Historique des développements
 
+### Réorganisation de l'architecture UI par packages (✅ 02/12/2025)
+- **Implémenté** : Restructuration complète des packages UI pour améliorer la maintenabilité
+- **Nouveaux packages** (5) :
+  - `ui/component/dialog/` : Tous les dialogs réutilisables (8 fichiers)
+  - `ui/component/badge/` : Tous les badges réutilisables (2 fichiers)
+  - `ui/view/auth/` : Vues d'authentification (LoginView, RegisterView)
+  - `ui/view/admin/` : Vues d'administration (4 vues)
+  - `ui/view/trip/` : Vues trajets et réservations (3 vues)
+- **Fichiers déplacés** : 19 fichiers au total
+- **Avantages** :
+  - 📁 **Organisation claire** : Fichiers groupés par fonctionnalité
+  - 🔍 **Navigation facilitée** : Plus facile de trouver les composants
+  - 🚀 **Scalabilité** : Structure prête pour de nouveaux composants
+  - 🧹 **Maintenabilité** : Séparation logique des responsabilités
+
+### Système de profil utilisateur (✅ 02/12/2025)
+- **Implémenté** : Système complet de gestion de profil utilisateur
+- **Nouveau DTO** :
+  - `ProfileDTO` : DTO avec statistiques (trajets proposés, réservations effectuées, date de création)
+- **Nouveaux composants** (3) :
+  - `ProfileDialog` : Dialog principal de profil (affichage + modification)
+  - `AvatarSelectionDialog` : Sélection d'avatar (grille 3 icônes : USER, MALE, FEMALE)
+  - `ChangePasswordDialog` : Changement de mot de passe avec validation sécurisée
+- **Modifications entités** :
+  - `Student.java` : Ajout champ `avatar` (String, default "USER")
+  - `StudentDTO.java` : Ajout champ `avatar`
+- **Modifications services** :
+  - `StudentMapper.java` : Méthode `toProfileDTO()` avec statistiques
+  - `StudentService.java` : 4 nouvelles méthodes (getProfile, updateProfile, updateAvatar, changePassword)
+- **Modifications UI** :
+  - `MainLayout.java` : Bouton profil dans le header (icône VaadinIcon.USER à droite)
+  - Injection de `StudentService` et `SecurityContextService` dans MainLayout
+- **Fonctionnalités** :
+  - ✅ Affichage complet : nom, email, avatar, code étudiant, statistiques, date de création
+  - ✅ Modification inline : nom, email (avec validation d'unicité)
+  - ✅ Changement d'avatar : 3 icônes Vaadin (USER, MALE, FEMALE)
+  - ✅ Changement de mot de passe : Dialog sécurisé avec vérification ancien mot de passe
+  - ✅ Statistiques en temps réel : Calcul dynamique des trajets proposés et réservations
+- **Migration SQL** : Ajout colonne `avatar` avec DEFAULT 'USER'
+- **🔮 Évolution prévue** : Migration vers upload d'images personnalisées
+- **Total** : 1 DTO créé, 3 composants créés, 5 fichiers modifiés
+
 ### Migration complète vers l'architecture DTO (✅ 02/12/2025)
 - **Implémenté** : Migration COMPLÈTE de l'application vers l'architecture DTO
-- **6 DTOs créés** :
+- **7 DTOs créés** :
   - `StudentDTO` : Affichage complet **sans password** (sécurité maximale)
   - `StudentListDTO` : Version minimale (id, name, email) pour listes et références
   - `StudentCreateDTO` : Création avec password (hashé avant conversion)
+  - `ProfileDTO` : Profil avec statistiques (trajets proposés, réservations effectuées)
   - `TripDTO` : Affichage avec driver en StudentListDTO (évite EAGER loading)
   - `TripCreateDTO` : Création (driver auto-assigné)
   - `BookingDTO` : Affichage avec TripDTO et StudentListDTO (évite références circulaires)

@@ -191,7 +191,8 @@ src/main/java/com/example/covoiturage_vaadin/
 │   │   ├── student/
 │   │   │   ├── StudentDTO.java        # Affichage (SANS password)
 │   │   │   ├── StudentListDTO.java    # Version minimale (liste)
-│   │   │   └── StudentCreateDTO.java  # Création (AVEC password)
+│   │   │   ├── StudentCreateDTO.java  # Création (AVEC password)
+│   │   │   └── ProfileDTO.java        # Profil avec statistiques
 │   │   ├── trip/
 │   │   │   ├── TripDTO.java           # Affichage (driver = StudentListDTO)
 │   │   │   └── TripCreateDTO.java     # Création
@@ -227,18 +228,33 @@ src/main/java/com/example/covoiturage_vaadin/
 └── ui/
     ├── component/             # Composants réutilisables
     │   ├── MainLayout.java    # Layout principal + sidebar
-    │   ├── TripEditDialog.java # Dialog édition/suppression trajet
-    │   └── LogoutButton.java
+    │   ├── LogoutButton.java  # Bouton déconnexion
+    │   ├── SearchBar.java     # Barre de recherche avec debounce
+    │   ├── dialog/            # 🆕 Dialogs réutilisables
+    │   │   ├── ProfileDialog.java           # Dialog profil utilisateur
+    │   │   ├── AvatarSelectionDialog.java   # Sélection d'avatar
+    │   │   ├── ChangePasswordDialog.java    # Changement mot de passe
+    │   │   ├── TripEditDialog.java          # Édition/suppression trajet
+    │   │   ├── TripBookingDialog.java       # Confirmation réservation
+    │   │   ├── BookingCancelDialog.java     # Confirmation annulation
+    │   │   ├── WhitelistCodeDialog.java     # Ajout code étudiant
+    │   │   └── ConfirmDeleteDialog.java     # Confirmation suppression
+    │   └── badge/             # 🆕 Badges réutilisables
+    │       ├── StatusBadge.java    # Badge statut réservation
+    │       └── TripTypeBadge.java  # Badge type trajet
     └── view/                  # Vues Vaadin
-        ├── LoginView.java     # Authentification
-        ├── RegisterView.java  # Inscription publique
-        ├── StudentView.java   # Annuaire
-        ├── TripCreationView.java
-        ├── TripSearchView.java  # Recherche + Réservation + Modification
-        ├── MyBookingsView.java  # Mes réservations
-        ├── AdminStudentCreationView.java
-        ├── AdminWhitelistView.java
-        └── PendingStudentsView.java
+        ├── auth/              # 🆕 Vues d'authentification
+        │   ├── LoginView.java     # Authentification
+        │   └── RegisterView.java  # Inscription publique
+        ├── admin/             # 🆕 Vues administration
+        │   ├── AdminStudentView.java          # Annuaire étudiants
+        │   ├── AdminStudentCreationView.java  # Création étudiant
+        │   ├── AdminWhitelistView.java        # Gestion whitelist
+        │   └── PendingStudentsView.java       # Validation étudiants
+        └── trip/              # 🆕 Vues trajets/réservations
+            ├── TripSearchView.java      # Recherche + Réservation
+            ├── TripCreationView.java    # Proposition trajet
+            └── MyBookingsView.java      # Mes réservations
 ```
 
 ## Vues disponibles
@@ -299,6 +315,22 @@ ALTER TABLE student MODIFY COLUMN avatar VARCHAR(255) DEFAULT 'USER';
 ```
 
 ## Historique des développements
+
+### Réorganisation de l'architecture UI par packages (02/12/2025) ✅
+- **Implémenté** : Restructuration complète des packages UI pour améliorer la maintenabilité
+- **Nouveaux packages** (5) :
+  - `ui/component/dialog/` : Tous les dialogs réutilisables (8 fichiers)
+  - `ui/component/badge/` : Tous les badges réutilisables (2 fichiers)
+  - `ui/view/auth/` : Vues d'authentification (2 fichiers)
+  - `ui/view/admin/` : Vues d'administration (4 fichiers)
+  - `ui/view/trip/` : Vues trajets et réservations (3 fichiers)
+- **Fichiers déplacés** : 19 fichiers au total
+- **Avantages** :
+  - 📁 **Organisation claire** : Fichiers groupés par fonctionnalité
+  - 🔍 **Navigation facilitée** : Plus facile de trouver les composants
+  - 🚀 **Scalabilité** : Structure prête pour de nouveaux composants
+  - 🧹 **Maintenabilité** : Séparation logique des responsabilités
+- **Impact** : Tous les imports mis à jour automatiquement (IDE)
 
 ### Système de profil utilisateur (02/12/2025) ✅
 - **Implémenté** : Système complet de gestion de profil utilisateur
