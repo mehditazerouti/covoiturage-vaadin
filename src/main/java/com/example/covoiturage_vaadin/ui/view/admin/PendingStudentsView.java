@@ -1,4 +1,4 @@
-package com.example.covoiturage_vaadin.ui.view;
+package com.example.covoiturage_vaadin.ui.view.admin;
 
 import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.AuthenticationService;

@@ -1,4 +1,4 @@
-package com.example.covoiturage_vaadin.ui.view;
+package com.example.covoiturage_vaadin.ui.view.trip;
 
 import com.example.covoiturage_vaadin.application.services.TripService;
 import com.vaadin.flow.component.button.Button;

@@ -1,8 +1,8 @@
-package com.example.covoiturage_vaadin.ui.view;
+package com.example.covoiturage_vaadin.ui.view.admin;
 
 import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.StudentService;
-import com.example.covoiturage_vaadin.ui.component.ConfirmDeleteDialog;
+import com.example.covoiturage_vaadin.ui.component.dialog.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
 import com.example.covoiturage_vaadin.ui.component.SearchBar;
 import com.vaadin.flow.component.avatar.Avatar;

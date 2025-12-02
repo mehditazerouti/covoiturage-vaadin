@@ -1,4 +1,4 @@
-package com.example.covoiturage_vaadin.ui.component;
+package com.example.covoiturage_vaadin.ui.component.badge;
 
 import com.example.covoiturage_vaadin.domain.model.BookingStatus;
 import com.vaadin.flow.component.html.Span;

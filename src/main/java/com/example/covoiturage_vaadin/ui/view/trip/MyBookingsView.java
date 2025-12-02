@@ -1,12 +1,12 @@
-package com.example.covoiturage_vaadin.ui.view;
+package com.example.covoiturage_vaadin.ui.view.trip;
 
 import com.example.covoiturage_vaadin.application.dto.booking.BookingDTO;
 import com.example.covoiturage_vaadin.application.services.BookingService;
 import com.example.covoiturage_vaadin.domain.model.BookingStatus;
-import com.example.covoiturage_vaadin.ui.component.BookingCancelDialog;
+import com.example.covoiturage_vaadin.ui.component.dialog.BookingCancelDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
-import com.example.covoiturage_vaadin.ui.component.StatusBadge;
-import com.example.covoiturage_vaadin.ui.component.TripTypeBadge;
+import com.example.covoiturage_vaadin.ui.component.badge.StatusBadge;
+import com.example.covoiturage_vaadin.ui.component.badge.TripTypeBadge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;

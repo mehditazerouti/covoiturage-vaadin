@@ -1,4 +1,4 @@
-package com.example.covoiturage_vaadin.ui.component;
+package com.example.covoiturage_vaadin.ui.component.dialog;
 
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.notification.Notification;

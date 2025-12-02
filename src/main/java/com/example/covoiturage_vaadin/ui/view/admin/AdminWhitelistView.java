@@ -1,12 +1,12 @@
-package com.example.covoiturage_vaadin.ui.view;
+package com.example.covoiturage_vaadin.ui.view.admin;
 
 import com.example.covoiturage_vaadin.application.services.AllowedStudentCodeService;
 import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.domain.model.AllowedStudentCode;
-import com.example.covoiturage_vaadin.ui.component.ConfirmDeleteDialog;
+import com.example.covoiturage_vaadin.ui.component.dialog.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
 import com.example.covoiturage_vaadin.ui.component.SearchBar;
-import com.example.covoiturage_vaadin.ui.component.WhitelistCodeDialog;
+import com.example.covoiturage_vaadin.ui.component.dialog.WhitelistCodeDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;

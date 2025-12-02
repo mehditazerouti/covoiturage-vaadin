@@ -1,10 +1,10 @@
 import '@vaadin/polymer-legacy-adapter/style-modules.js';
-import '@vaadin/dialog/src/vaadin-dialog.js';
-import 'Frontend/generated/jar-resources/flow-component-renderer.js';
-import '@vaadin/confirm-dialog/src/vaadin-confirm-dialog.js';
 import '@vaadin/horizontal-layout/src/vaadin-horizontal-layout.js';
 import '@vaadin/app-layout/src/vaadin-app-layout.js';
 import '@vaadin/text-field/src/vaadin-text-field.js';
+import '@vaadin/dialog/src/vaadin-dialog.js';
+import 'Frontend/generated/jar-resources/flow-component-renderer.js';
+import '@vaadin/confirm-dialog/src/vaadin-confirm-dialog.js';
 import '@vaadin/vertical-layout/src/vaadin-vertical-layout.js';
 import '@vaadin/common-frontend/ConnectionIndicator.js';
 import '@vaadin/accordion/src/vaadin-accordion.js';

@@ -1,6 +1,6 @@
 package com.example.covoiturage_vaadin.infrastructure.config;
 
-import com.example.covoiturage_vaadin.ui.view.LoginView;
+import com.example.covoiturage_vaadin.ui.view.auth.LoginView;
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

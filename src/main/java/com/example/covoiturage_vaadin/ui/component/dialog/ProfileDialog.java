@@ -1,4 +1,4 @@
-package com.example.covoiturage_vaadin.ui.component;
+package com.example.covoiturage_vaadin.ui.component.dialog;
 
 import com.example.covoiturage_vaadin.application.dto.student.ProfileDTO;
 import com.example.covoiturage_vaadin.application.services.StudentService;
