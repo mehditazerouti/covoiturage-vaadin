@@ -14,7 +14,6 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
@@ -24,10 +23,6 @@ import jakarta.annotation.security.RolesAllowed;
 
 import java.time.format.DateTimeFormatter;
 
-/**
- * Vue d'administration pour gérer la whitelist des codes étudiants.
- * Accessible uniquement aux administrateurs.
- */
 @Route(value = "admin/whitelist", layout = MainLayout.class)
 @PageTitle("Gestion Whitelist - Admin")
 @RolesAllowed("ADMIN")
@@ -49,135 +44,135 @@ public class AdminWhitelistView extends VerticalLayout {
         this.securityContext = securityContext;
 
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
+        setPadding(false);
+        setSpacing(false);
+        getStyle().set("background-color", "var(--lumo-contrast-5pct)");
 
-        // Titre
-        H2 title = new H2("Gestion des codes étudiants autorisés");
+        // --- 1. HEADER ---
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setPadding(true);
+        header.setAlignItems(Alignment.CENTER);
+        header.getStyle()
+            .set("background", "white")
+            .set("border-bottom", "1px solid var(--lumo-contrast-10pct)")
+            .set("box-shadow", "0 2px 4px rgba(0,0,0,0.02)");
 
-        // Barre de recherche
-        configureSearchBar();
+        H2 title = new H2("Whitelist");
+        title.getStyle().set("margin", "0").set("font-size", "1.5rem");
+    
 
-        // Configuration de la grille
+        header.add(title);
+
+        // --- 2. CONTENU PRINCIPAL ---
+        VerticalLayout mainContent = new VerticalLayout();
+        mainContent.setSizeFull();
+        mainContent.setPadding(true);
+
+        // --- 3. CARTE GRILLE ---
+        VerticalLayout gridCard = new VerticalLayout();
+        gridCard.setSizeFull();
+        gridCard.setPadding(false);
+        gridCard.setSpacing(false);
+        
+        gridCard.getStyle()
+            .set("background", "white")
+            .set("border-radius", "16px")
+            .set("box-shadow", "0 10px 40px rgba(0,0,0,0.06)")
+            .set("overflow", "hidden");
+
+        // --- BARRE D'OUTILS ---
+        HorizontalLayout toolbar = new HorizontalLayout();
+        toolbar.setWidthFull();
+        toolbar.setPadding(true);
+        
+        // CORRECTION ALIGNEMENT : Centre verticalement et écarte horizontalement
+        toolbar.setAlignItems(Alignment.CENTER);
+        toolbar.setJustifyContentMode(JustifyContentMode.BETWEEN);
+
+        // Config SearchBar
+        searchBar.setMaxWidth("400px");
+        // Important : reset des marges pour éviter le décalage
+        searchBar.getStyle().set("margin", "0");
+
+        // Config Bouton
+        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        addButton.addClickListener(e -> openAddCodeDialog());
+        // Important : reset des marges
+        addButton.getStyle().set("margin", "0").set("cursor", "pointer");
+
+        toolbar.add(searchBar, addButton);
+
         configureGrid();
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
+        grid.getStyle().set("border", "none");
 
-        // Barre d'outils
-        HorizontalLayout toolbar = createToolbar();
+        gridCard.add(toolbar, grid);
+        mainContent.add(gridCard);
 
-        add(title, searchBar, toolbar, grid);
+        add(header, mainContent);
 
-        // Charger les données
+        configureSearchBar();
         refreshGrid();
     }
 
     private void configureSearchBar() {
-        // Listener pour filtrer la grille en temps réel
         searchBar.addValueChangeListener(e -> applyFilter());
     }
 
     private void applyFilter() {
         if (dataProvider != null) {
             dataProvider.clearFilters();
-
-            String searchTerm = searchBar.getSearchValue(); // lowercase + trim
-
+            String searchTerm = searchBar.getSearchValue();
             if (!searchBar.isSearchEmpty()) {
                 dataProvider.addFilter(code -> {
                     String studentCode = code.getStudentCode().toLowerCase();
                     String createdBy = code.getCreatedBy() != null ? code.getCreatedBy().toLowerCase() : "";
                     String usedBy = (code.isUsed() && code.getUsedBy() != null)
-                        ? code.getUsedBy().getName().toLowerCase()
-                        : "";
-
-                    return studentCode.contains(searchTerm)
-                        || createdBy.contains(searchTerm)
-                        || usedBy.contains(searchTerm);
+                        ? code.getUsedBy().getName().toLowerCase() : "";
+                    return studentCode.contains(searchTerm) || createdBy.contains(searchTerm) || usedBy.contains(searchTerm);
                 });
             }
         }
     }
 
-    private HorizontalLayout createToolbar() {
-        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        addButton.addClickListener(e -> openAddCodeDialog());
-
-        HorizontalLayout toolbar = new HorizontalLayout(addButton);
-        toolbar.setAlignItems(FlexComponent.Alignment.CENTER);
-        return toolbar;
-    }
-
     private void configureGrid() {
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
+        grid.addColumn(AllowedStudentCode::getStudentCode).setHeader("Code").setSortable(true).setAutoWidth(true);
 
-        // Colonne Code étudiant
-        grid.addColumn(AllowedStudentCode::getStudentCode)
-            .setHeader("Code étudiant")
-            .setSortable(true)
-            .setAutoWidth(true);
-
-        // Colonne Utilisé
         grid.addComponentColumn(code -> {
-            Span badge = new Span(code.isUsed() ? "Oui" : "Non");
-            if (code.isUsed()) {
-                badge.getElement().getThemeList().add("badge success");
-            } else {
-                badge.getElement().getThemeList().add("badge");
-            }
+            Span badge = new Span(code.isUsed() ? "Utilisé" : "Libre");
+            badge.getElement().getThemeList().add(code.isUsed() ? "badge success" : "badge contrast");
             return badge;
-        }).setHeader("Utilisé").setAutoWidth(true);
+        }).setHeader("État").setAutoWidth(true);
 
-        // Colonne Étudiant (si utilisé)
-        grid.addColumn(code -> {
-            if (code.isUsed() && code.getUsedBy() != null) {
-                return code.getUsedBy().getName();
-            }
-            return "-";
-        }).setHeader("Utilisé par").setAutoWidth(true);
+        grid.addColumn(code -> code.isUsed() && code.getUsedBy() != null ? code.getUsedBy().getName() : "-")
+            .setHeader("Utilisé par").setAutoWidth(true);
 
-        // Colonne Créé par
-        grid.addColumn(AllowedStudentCode::getCreatedBy)
-            .setHeader("Ajouté par")
-            .setAutoWidth(true);
+        grid.addColumn(AllowedStudentCode::getCreatedBy).setHeader("Créateur").setAutoWidth(true);
 
-        // Colonne Date de création
-        grid.addColumn(code -> {
-            if (code.getCreatedAt() != null) {
-                return code.getCreatedAt().format(DATE_FORMATTER);
-            }
-            return "";
-        }).setHeader("Date création").setAutoWidth(true);
+        grid.addColumn(code -> code.getCreatedAt() != null ? code.getCreatedAt().format(DATE_FORMATTER) : "")
+            .setHeader("Date").setAutoWidth(true);
 
-        // Colonne Actions
         grid.addComponentColumn(code -> {
             Button deleteBtn = new Button(VaadinIcon.TRASH.create());
-            deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-            deleteBtn.setEnabled(!code.isUsed()); // Désactivé si déjà utilisé
-            deleteBtn.setTooltipText(code.isUsed() ? "Impossible de supprimer un code utilisé" : "Supprimer");
+            deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+            deleteBtn.setEnabled(!code.isUsed());
             deleteBtn.addClickListener(e -> {
-                ConfirmDeleteDialog dialog = new ConfirmDeleteDialog(
-                    "Supprimer le code",
-                    "Voulez-vous vraiment supprimer le code \"" + code.getStudentCode() + "\" ?",
-                    () -> codeService.deleteCode(code),
-                    this::refreshGrid
-                );
-                dialog.open();
+                new ConfirmDeleteDialog("Supprimer", "Voulez-vous supprimer le code " + code.getStudentCode() + " ?", 
+                    () -> codeService.deleteCode(code), this::refreshGrid).open();
             });
             return deleteBtn;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Actions");
     }
 
     private void openAddCodeDialog() {
         String username = securityContext.getCurrentUsername().orElse("UNKNOWN");
-        WhitelistCodeDialog dialog = new WhitelistCodeDialog(codeService, username, this::refreshGrid);
-        dialog.open();
+        new WhitelistCodeDialog(codeService, username, this::refreshGrid).open();
     }
 
     private void refreshGrid() {
-        // Utiliser un ListDataProvider pour permettre le filtrage
         dataProvider = new ListDataProvider<>(codeService.findAll());
         grid.setDataProvider(dataProvider);
-
-        // Réappliquer le filtre de recherche si un terme est présent
         applyFilter();
     }
 }

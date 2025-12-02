@@ -12,39 +12,38 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 public class LogoutButton extends HorizontalLayout {
 
     public LogoutButton() {
-        // Création du bouton avec une icône
+        setWidthFull();
+        setPadding(false);
+        setSpacing(false);
+
+        // Création d'un bouton large et moderne
         Button logoutBtn = new Button("Déconnexion", new Icon(VaadinIcon.SIGN_OUT));
-        logoutBtn.addThemeVariants(ButtonVariant.LUMO_ERROR); // Couleur rouge pour indiquer la sortie
+        logoutBtn.setWidthFull();
+        
+        // Style subtil : texte rouge, fond transparent (Ghost), icône à droite
+        logoutBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        
+        // Customisation CSS pour un look "Danger doux"
+        logoutBtn.getStyle()
+            .set("color", "var(--lumo-error-text-color)")
+            .set("cursor", "pointer")
+            .set("font-weight", "500")
+            .set("justify-content", "flex-start"); // Aligner texte à gauche comme les menus
+        
+        // Ajout d'un fond léger au survol (géré par Vaadin par défaut, mais on peut renforcer)
+        logoutBtn.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
 
-        // Logique de déconnexion
         logoutBtn.addClickListener(e -> {
-            // 1. Capturer la référence UI AVANT le logout (car la session sera invalidée)
             UI ui = UI.getCurrent();
-
-            // 2. Invalider la session Spring Security côté serveur
             SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
             logoutHandler.logout(
                     VaadinServletRequest.getCurrent().getHttpServletRequest(),
                     null,
                     null
             );
-
-            // 3. Rediriger vers la page de login avec l'UI capturée
             ui.getPage().setLocation("/login");
         });
 
         add(logoutBtn);
-
-        // --- Style CSS pour le positionnement fixe en bas à droite ---
-        this.getStyle().set("position", "fixed");
-        this.getStyle().set("bottom", "20px");
-        this.getStyle().set("right", "20px");
-        
-        // Z-index élevé pour s'assurer qu'il flotte au-dessus des autres éléments (comme les grilles)
-        this.getStyle().set("z-index", "1000"); 
-        
-        // Supprimer le padding/spacing par défaut du layout pour être propre
-        this.setPadding(false);
-        this.setSpacing(false);
     }
 }

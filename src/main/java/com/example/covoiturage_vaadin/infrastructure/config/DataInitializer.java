@@ -110,6 +110,7 @@ public class DataInitializer implements ApplicationRunner {
 
         // 1. Créer le compte admin
         Student admin = createAdmin();
+        System.out.println("✅ L'administrateur a été créé." + admin.getUsername());
 
         // 2. Créer 60 codes étudiants whitelistés
         createWhitelistedCodes();

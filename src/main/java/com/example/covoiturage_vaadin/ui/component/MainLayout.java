@@ -1,6 +1,5 @@
 package com.example.covoiturage_vaadin.ui.component;
 
-
 import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.component.dialog.ProfileDialog;
@@ -16,13 +15,12 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Hr;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
@@ -31,8 +29,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Le layout principal qui contient la Sidebar et le Header.
- * Toutes les vues utiliseront ce layout via @Route(layout = MainLayout.class)
+ * Le layout principal modernisé.
  */
 public class MainLayout extends AppLayout {
 
@@ -42,123 +39,129 @@ public class MainLayout extends AppLayout {
     public MainLayout(StudentService studentService, SecurityContextService securityContextService) {
         this.studentService = studentService;
         this.securityContextService = securityContextService;
+        
+        // Configuration de base
+        setPrimarySection(Section.DRAWER);
         createHeader();
         createDrawer();
+        
+        // Enlever le fond gris par défaut du drawer pour un look plus clean
+        this.getElement().getStyle().set("--vaadin-app-layout-drawer-overlay-background-color", "white");
     }
 
     private void createHeader() {
-        H1 logo = new H1("Covoit' Étudiant");
-        logo.addClassNames(
-            LumoUtility.FontSize.LARGE,
-            LumoUtility.Margin.MEDIUM,
-            LumoUtility.FontWeight.BOLD
-        );
+        // Logo avec icône
+        Icon logoIcon = VaadinIcon.CAR.create();
+        logoIcon.setColor("var(--lumo-primary-color)");
+        logoIcon.addClassName(LumoUtility.Margin.Right.SMALL);
 
-        // Bouton profil utilisateur (à droite)
-        Button profileButton = new Button(new Icon(VaadinIcon.USER));
-        profileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        profileButton.getElement().setAttribute("aria-label", "Profil utilisateur");
+        H1 logoText = new H1("Covoit' Étudiant");
+        logoText.getStyle()
+            .set("font-size", "var(--lumo-font-size-l)")
+            .set("font-weight", "600")
+            .set("margin", "0");
+
+        HorizontalLayout logoLayout = new HorizontalLayout(logoIcon, logoText);
+        logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        // Bouton Profil (Rond et minimaliste)
+        Button profileButton = new Button(VaadinIcon.USER.create());
+        profileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        profileButton.setTooltipText("Mon Profil");
+        profileButton.getStyle()
+            .set("border-radius", "50%")
+            .set("width", "40px")
+            .set("height", "40px")
+            .set("background-color", "var(--lumo-contrast-5pct)"); // Fond gris léger
+            
         profileButton.addClickListener(e -> openProfileDialog());
 
-        // Le Toggle est le bouton "hamburger" pour ouvrir/fermer le menu sur mobile
-        var header = new com.vaadin.flow.component.orderedlayout.HorizontalLayout(
-            new DrawerToggle(),
-            logo
-        );
+        // Header Container
+        HorizontalLayout header = new HorizontalLayout(new DrawerToggle(), logoLayout);
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
-        header.expand(logo); // Le logo prend tout l'espace disponible (pousse le bouton profil à droite)
-        header.add(profileButton); // Bouton profil à droite
+        header.expand(logoLayout); // Pousse le profil à droite
+        header.add(profileButton);
+        
         header.setWidthFull();
-        header.addClassNames(
-            LumoUtility.Padding.Vertical.NONE,
-            LumoUtility.Padding.Horizontal.MEDIUM
-        );
+        header.addClassNames(LumoUtility.Padding.Vertical.SMALL, LumoUtility.Padding.Horizontal.MEDIUM);
+        
+        // Style "Clean Header" : Blanc + Ombre douce
+        header.getStyle()
+            .set("background", "white")
+            .set("box-shadow", "0 2px 10px rgba(0,0,0,0.03)")
+            .set("border-bottom", "1px solid var(--lumo-contrast-5pct)");
 
         addToNavbar(header);
     }
 
-    /**
-     * Ouvre le dialog de profil utilisateur
-     */
-    private void openProfileDialog() {
-        // Récupérer le username de l'utilisateur connecté
-        var usernameOpt = securityContextService.getCurrentUsername();
-        if (usernameOpt.isEmpty()) {
-            Notification notification = Notification.show("Erreur : utilisateur non connecté");
-            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-            notification.setDuration(3000);
-            return;
-        }
-
-        // Récupérer l'étudiant par username
-        var studentOpt = studentService.getStudentByUsername(usernameOpt.get());
-        if (studentOpt.isEmpty()) {
-            Notification notification = Notification.show("Erreur : profil introuvable");
-            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-            notification.setDuration(3000);
-            return;
-        }
-
-        Long studentId = studentOpt.get().getId();
-        ProfileDialog dialog = new ProfileDialog(studentService, studentId);
-        dialog.open();
-    }
-
     private void createDrawer() {
         VerticalLayout drawerContent = new VerticalLayout();
-        drawerContent.setPadding(false);
-        drawerContent.setSpacing(false);
+        drawerContent.setPadding(true); // Un peu de padding autour du menu
+        drawerContent.setSpacing(true);
+        drawerContent.setSizeFull();
 
-        // Section principale (pour tous les utilisateurs)
+        // 1. Navigation Principale
         SideNav mainNav = new SideNav();
-        mainNav.addItem(new SideNavItem("Rechercher Trajet", TripSearchView.class, VaadinIcon.SEARCH.create()));
-        mainNav.addItem(new SideNavItem("Proposer Trajet", TripCreationView.class, VaadinIcon.CAR.create()));
-        mainNav.addItem(new SideNavItem("Mes Réservations", MyBookingsView.class, VaadinIcon.BOOKMARK.create()));
+        mainNav.setLabel("Navigation");
+        mainNav.addItem(new SideNavItem("Rechercher", TripSearchView.class, VaadinIcon.SEARCH.create()));
+        mainNav.addItem(new SideNavItem("Proposer un trajet", TripCreationView.class, VaadinIcon.PLUS_CIRCLE.create()));
+        mainNav.addItem(new SideNavItem("Mes réservations", MyBookingsView.class, VaadinIcon.BOOKMARK.create()));
 
         drawerContent.add(mainNav);
 
-        // Section administration (uniquement pour les admins)
+        // 2. Navigation Admin (Conditionnelle)
         if (isUserAdmin()) {
-            Hr separator = new Hr();
-            separator.getStyle().set("margin", "var(--lumo-space-m) 0");
-
-            Span adminLabel = new Span("Administration");
-            adminLabel.getStyle()
-                .set("font-weight", "bold")
-                .set("font-size", "var(--lumo-font-size-s)")
-                .set("color", "var(--lumo-secondary-text-color)")
-                .set("padding", "0 var(--lumo-space-m)")
-                .set("margin", "var(--lumo-space-s) 0");
-
             SideNav adminNav = new SideNav();
-            adminNav.addItem(new SideNavItem("Annuaire Étudiants", AdminStudentView.class, VaadinIcon.USERS.create()));
-            adminNav.addItem(new SideNavItem("Créer un Étudiant", AdminStudentCreationView.class, VaadinIcon.USER_CARD.create()));
-            adminNav.addItem(new SideNavItem("Codes Étudiants", AdminWhitelistView.class, VaadinIcon.MODAL_LIST.create()));
-            adminNav.addItem(new SideNavItem("Étudiants en Attente", PendingStudentsView.class, VaadinIcon.HOURGLASS.create()));
+            adminNav.setLabel("Administration");
+            adminNav.setCollapsible(true); // On peut replier le menu admin
+            
+            adminNav.addItem(new SideNavItem("Annuaire", AdminStudentView.class, VaadinIcon.USERS.create()));
+            adminNav.addItem(new SideNavItem("Créer étudiant", AdminStudentCreationView.class, VaadinIcon.PLUS_CIRCLE.create()));
+            adminNav.addItem(new SideNavItem("Whitelist", AdminWhitelistView.class, VaadinIcon.MODAL_LIST.create()));
+            
+            // Badge pour les validations en attente (Optionnel mais classe)
+            SideNavItem pendingItem = new SideNavItem("Validations", PendingStudentsView.class, VaadinIcon.HOURGLASS.create());
+            adminNav.addItem(pendingItem);
 
-            drawerContent.add(separator, adminLabel, adminNav);
+            drawerContent.add(adminNav);
         }
 
         Scroller scroller = new Scroller(drawerContent);
-        scroller.setClassName(LumoUtility.Padding.SMALL);
-
-        // Bouton de déconnexion en bas de la sidebar
+        scroller.addClassName(LumoUtility.Padding.SMALL);
+        
+        // Pour pousser le bouton logout vers le bas
+        VerticalLayout drawerContainer = new VerticalLayout(scroller);
+        drawerContainer.setSizeFull();
+        drawerContainer.setPadding(false);
+        drawerContainer.setSpacing(false);
+        
+        // 3. Bouton Déconnexion (Intégré en bas)
         LogoutButton logout = new LogoutButton();
-        logout.getStyle().clear();
-        logout.addClassNames(LumoUtility.Margin.MEDIUM);
+        
+        // Container footer pour le bouton
+        VerticalLayout footer = new VerticalLayout(logout);
+        footer.setPadding(true);
+        footer.getStyle().set("border-top", "1px solid var(--lumo-contrast-5pct)");
 
-        addToDrawer(scroller, logout);
+        addToDrawer(drawerContainer, footer);
     }
 
-    /**
-     * Vérifie si l'utilisateur connecté a le rôle ADMIN
-     */
+    private void openProfileDialog() {
+        var usernameOpt = securityContextService.getCurrentUsername();
+        if (usernameOpt.isEmpty()) return;
+
+        var studentOpt = studentService.getStudentByUsername(usernameOpt.get());
+        if (studentOpt.isPresent()) {
+            new ProfileDialog(studentService, studentOpt.get().getId()).open();
+        } else {
+            Notification.show("Profil introuvable", 3000, Notification.Position.MIDDLE)
+                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
     private boolean isUserAdmin() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            return false;
-        }
-        return authentication.getAuthorities().stream()
-            .anyMatch(grantedAuthority -> "ROLE_ADMIN".equals(grantedAuthority.getAuthority()));
+        return authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 }

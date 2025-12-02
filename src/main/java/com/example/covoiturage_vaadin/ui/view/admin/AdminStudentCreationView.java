@@ -9,7 +9,6 @@ import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -24,11 +23,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 
-/**
- * Vue d'administration pour créer des étudiants.
- * L'admin saisit nom, email, code étudiant.
- * Le mot de passe est généré automatiquement et affiché à l'admin.
- */
 @Route(value = "admin/create-student", layout = MainLayout.class)
 @PageTitle("Créer un Étudiant - Admin")
 @RolesAllowed("ADMIN")
@@ -49,32 +43,56 @@ public class AdminStudentCreationView extends VerticalLayout {
         this.securityContext = securityContext;
 
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
-        setAlignItems(Alignment.CENTER);
-        setJustifyContentMode(JustifyContentMode.CENTER);
+        setPadding(false);
+        setSpacing(false);
+        // Fond gris global
+        getStyle().set("background-color", "var(--lumo-contrast-5pct)");
 
-        // Titre
+        // --- 1. HEADER DÉTACHÉ ---
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setPadding(true);
+        header.setAlignItems(Alignment.CENTER);
+        header.getStyle()
+            .set("background", "white")
+            .set("border-bottom", "1px solid var(--lumo-contrast-10pct)")
+            .set("box-shadow", "0 2px 4px rgba(0,0,0,0.02)");
+
         H2 title = new H2("Créer un étudiant");
+        title.getStyle().set("margin", "0").set("font-size", "1.5rem");
+        header.add(title);
+
+        // --- 2. CONTENU PRINCIPAL ---
+        VerticalLayout mainContent = new VerticalLayout();
+        mainContent.setSizeFull();
+        mainContent.setPadding(true);
+        mainContent.setAlignItems(Alignment.CENTER); // Centrer la carte
+        mainContent.setJustifyContentMode(JustifyContentMode.CENTER);
+
+        // --- 3. CARTE FORMULAIRE ---
+        VerticalLayout card = new VerticalLayout();
+        card.setMaxWidth("600px");
+        card.setWidth("100%");
+        card.setPadding(true);
+        card.setSpacing(true);
+        
+        // Style Clean Card
+        card.getStyle()
+            .set("background", "white")
+            .set("border-radius", "16px")
+            .set("box-shadow", "0 10px 40px rgba(0,0,0,0.06)")
+            .set("padding", "var(--lumo-space-xl)");
+
         Paragraph subtitle = new Paragraph("Le mot de passe sera généré automatiquement (4 lettres du nom + 4 premiers caractères du code)");
-        subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)").set("margin-top", "0");
 
-        // Formulaire
         FormLayout formLayout = createFormLayout();
-
-        // Boutons
         HorizontalLayout buttons = createButtons();
 
-        // Container
-        VerticalLayout container = new VerticalLayout(title, subtitle, formLayout, buttons);
-        container.setMaxWidth("600px");
-        container.setAlignItems(Alignment.STRETCH);
-        container.setPadding(true);
-        container.getStyle().set("background", "var(--lumo-base-color)")
-                            .set("border-radius", "var(--lumo-border-radius-m)")
-                            .set("box-shadow", "var(--lumo-box-shadow-m)");
-
-        add(container);
+        card.add(subtitle, formLayout, buttons);
+        
+        mainContent.add(card);
+        add(header, mainContent);
     }
 
     private FormLayout createFormLayout() {
@@ -100,43 +118,36 @@ public class AdminStudentCreationView extends VerticalLayout {
 
     private HorizontalLayout createButtons() {
         createButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        createButton.getStyle().set("cursor", "pointer");
         createButton.addClickListener(e -> confirmCreateStudent());
 
         clearButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        clearButton.getStyle().set("cursor", "pointer");
         clearButton.addClickListener(e -> clearForm());
 
         HorizontalLayout buttons = new HorizontalLayout(createButton, clearButton);
-        buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        buttons.setWidthFull();
+        buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN); // Espacement élégant
+        buttons.getStyle().set("margin-top", "var(--lumo-space-m)");
+        
         return buttons;
     }
 
     private void confirmCreateStudent() {
-        // Validation
-        if (!validateFields()) {
-            return;
-        }
+        if (!validateFields()) return;
 
         ConfirmDialog confirmDialog = new ConfirmDialog();
         confirmDialog.setHeader("Confirmer la création");
-        confirmDialog.setText("Voulez-vous vraiment créer cet étudiant ?\n\n" +
-                              "Nom : " + nameField.getValue() + "\n" +
-                              "Email : " + emailField.getValue() + "\n" +
-                              "Code : " + studentCodeField.getValue());
-
+        confirmDialog.setText("Voulez-vous vraiment créer cet étudiant ?\n" + nameField.getValue());
         confirmDialog.setCancelable(true);
-        confirmDialog.setCancelText("Annuler");
-
         confirmDialog.setConfirmText("Créer");
         confirmDialog.setConfirmButtonTheme("primary");
-
         confirmDialog.addConfirmListener(event -> createStudent());
-
         confirmDialog.open();
     }
 
     private void createStudent() {
         try {
-            // Récupérer le username de l'admin connecté
             String adminUsername = securityContext.getCurrentUsername()
                     .orElseThrow(() -> new IllegalStateException("Impossible de récupérer l'utilisateur connecté"));
 
@@ -144,103 +155,71 @@ public class AdminStudentCreationView extends VerticalLayout {
                 nameField.getValue().trim(),
                 emailField.getValue().trim(),
                 studentCodeField.getValue().trim(),
-                adminUsername  // ✅ Passer l'admin pour traçabilité whitelist
+                adminUsername
             );
 
-            // Succès : afficher le mot de passe dans un dialog
-            showPasswordDialog(result.getStudent().getName(),
-                              result.getStudent().getUsername(),
-                              result.getPlainPassword());
-
-            // Vider le formulaire
+            showPasswordDialog(result.getStudent().getName(), result.getStudent().getUsername(), result.getPlainPassword());
             clearForm();
 
-        } catch (IllegalArgumentException ex) {
+        } catch (Exception ex) {
             Notification.show("❌ Erreur : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-        } catch (IllegalStateException ex) {
-            Notification.show("❌ Erreur système : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
                 .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 
     private void showPasswordDialog(String studentName, String username, String password) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("✅ Étudiant créé avec succès");
+        dialog.setHeaderTitle("✅ Étudiant créé");
 
-        H3 successTitle = new H3("L'étudiant a été créé !");
-        successTitle.getStyle().set("color", "var(--lumo-success-color)").set("margin-top", "0");
+        VerticalLayout layout = new VerticalLayout();
+        layout.setPadding(false);
+        layout.setSpacing(true);
 
-        Paragraph info = new Paragraph("Voici les identifiants de connexion :");
-        info.getStyle().set("margin-bottom", "var(--lumo-space-s)");
-
-        // Affichage des identifiants avec style
-        VerticalLayout credentialsLayout = new VerticalLayout();
-        credentialsLayout.setPadding(true);
-        credentialsLayout.setSpacing(false);
-        credentialsLayout.getStyle()
+        // Zone de mot de passe stylisée
+        VerticalLayout credentialsBox = new VerticalLayout();
+        credentialsBox.getStyle()
             .set("background", "var(--lumo-contrast-5pct)")
-            .set("border-radius", "var(--lumo-border-radius-m)")
+            .set("border-radius", "8px")
+            .set("padding", "var(--lumo-space-m)")
             .set("border", "1px solid var(--lumo-contrast-10pct)");
 
-        Span nameLabel = new Span("Nom : ");
-        nameLabel.getStyle().set("font-weight", "bold");
-        Span nameValue = new Span(studentName);
+        credentialsBox.add(
+            new Span("Nom d'utilisateur : " + username),
+            createPasswordSpan(password)
+        );
 
-        Span usernameLabel = new Span("Nom d'utilisateur : ");
-        usernameLabel.getStyle().set("font-weight", "bold");
-        Span usernameValue = new Span(username);
-
-        Span passwordLabel = new Span("Mot de passe : ");
-        passwordLabel.getStyle().set("font-weight", "bold");
-        Span passwordValue = new Span(password);
-        passwordValue.getStyle().set("font-family", "monospace")
-                                .set("color", "var(--lumo-primary-color)")
-                                .set("font-size", "var(--lumo-font-size-l)");
-
-        HorizontalLayout nameLine = new HorizontalLayout(nameLabel, nameValue);
-        nameLine.setSpacing(false);
-        HorizontalLayout usernameLine = new HorizontalLayout(usernameLabel, usernameValue);
-        usernameLine.setSpacing(false);
-        HorizontalLayout passwordLine = new HorizontalLayout(passwordLabel, passwordValue);
-        passwordLine.setSpacing(false);
-
-        credentialsLayout.add(nameLine, usernameLine, passwordLine);
-
-        Paragraph warning = new Paragraph("⚠️ Notez ce mot de passe, il ne sera plus affiché !");
-        warning.getStyle().set("color", "var(--lumo-error-color)")
-                         .set("font-weight", "bold");
+        layout.add(new Paragraph("Notez ces identifiants, ils ne seront plus affichés."), credentialsBox);
 
         Button closeButton = new Button("Fermer", e -> dialog.close());
         closeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-        VerticalLayout layout = new VerticalLayout(successTitle, info, credentialsLayout, warning, closeButton);
-        layout.setAlignItems(Alignment.STRETCH);
-
+        closeButton.setWidthFull();
+        
+        layout.add(closeButton);
         dialog.add(layout);
-        dialog.setWidth("500px");
         dialog.open();
+    }
+    
+    private Span createPasswordSpan(String password) {
+        Span span = new Span("Mot de passe : " + password);
+        span.getStyle()
+            .set("font-family", "monospace")
+            .set("font-weight", "bold")
+            .set("font-size", "1.1em")
+            .set("color", "var(--lumo-primary-color)");
+        return span;
     }
 
     private boolean validateFields() {
-        if (nameField.isEmpty() || emailField.isEmpty() || studentCodeField.isEmpty()) {
-            Notification.show("❌ Tous les champs sont obligatoires", 3000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return false;
-        }
-
-        if (emailField.isInvalid()) {
-            Notification.show("❌ L'email n'est pas valide", 3000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return false;
-        }
-
-        return true;
+        boolean isValid = true;
+        if (nameField.isEmpty()) { nameField.setInvalid(true); isValid = false; }
+        if (emailField.isEmpty() || emailField.isInvalid()) { emailField.setInvalid(true); isValid = false; }
+        if (studentCodeField.isEmpty()) { studentCodeField.setInvalid(true); isValid = false; }
+        return isValid;
     }
 
     private void clearForm() {
-        nameField.clear();
-        emailField.clear();
-        studentCodeField.clear();
+        nameField.clear(); nameField.setInvalid(false);
+        emailField.clear(); emailField.setInvalid(false);
+        studentCodeField.clear(); studentCodeField.setInvalid(false);
     }
 }

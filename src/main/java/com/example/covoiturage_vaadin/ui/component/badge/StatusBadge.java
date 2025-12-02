@@ -3,15 +3,17 @@ package com.example.covoiturage_vaadin.ui.component.badge;
 import com.example.covoiturage_vaadin.domain.model.BookingStatus;
 import com.vaadin.flow.component.html.Span;
 
-/**
- * Composant réutilisable pour afficher un badge de statut de réservation.
- * Affiche le statut avec une couleur appropriée.
- */
 public class StatusBadge extends Span {
 
     public StatusBadge(BookingStatus status) {
         setText(getStatusLabel(status));
-        getElement().getThemeList().add(getStatusBadgeTheme(status));
+        
+        // Ajout du thème "badge" (couleur) ET "pill" (forme arrondie)
+        String theme = getStatusBadgeTheme(status) + " pill";
+        getElement().getThemeList().add(theme);
+        
+        // Petit ajustement de style pour aérer
+        getStyle().set("padding", "0.3em 0.8em");
     }
 
     private String getStatusLabel(BookingStatus status) {
@@ -24,9 +26,9 @@ public class StatusBadge extends Span {
 
     private String getStatusBadgeTheme(BookingStatus status) {
         return switch (status) {
-            case PENDING -> "badge contrast";
-            case CONFIRMED -> "badge success";
-            case CANCELLED -> "badge error";
+            case PENDING -> "badge contrast"; // Gris
+            case CONFIRMED -> "badge success";  // Vert
+            case CANCELLED -> "badge error";    // Rouge
         };
     }
 }

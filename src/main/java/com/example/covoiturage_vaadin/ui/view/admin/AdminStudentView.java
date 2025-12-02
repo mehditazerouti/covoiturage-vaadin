@@ -4,7 +4,7 @@ import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.component.dialog.AdminStudentProfileDialog;
 import com.example.covoiturage_vaadin.ui.component.dialog.ConfirmDeleteDialog;
-import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
+import com.example.covoiturage_vaadin.ui.component.MainLayout;
 import com.example.covoiturage_vaadin.ui.component.SearchBar;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
@@ -33,70 +33,82 @@ import java.util.stream.Collectors;
 public class AdminStudentView extends VerticalLayout {
 
     private final StudentService studentService;
-    private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false); // false = pas de colonnes auto
-    private final SearchBar searchBar = new SearchBar("Rechercher par nom, email ou code étudiant...");
+    private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false);
+    private final SearchBar searchBar = new SearchBar("Rechercher par nom, email ou code...");
     private ListDataProvider<StudentDTO> dataProvider;
 
     public AdminStudentView(StudentService studentService) {
         this.studentService = studentService;
 
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
+        setPadding(false);
+        setSpacing(false);
+        getStyle().set("background-color", "var(--lumo-contrast-5pct)");
 
-        // 1. Titre Moderne
+        // HEADER
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setPadding(true);
+        header.setAlignItems(Alignment.CENTER);
+        header.getStyle()
+            .set("background", "white")
+            .set("border-bottom", "1px solid var(--lumo-contrast-10pct)")
+            .set("box-shadow", "0 2px 4px rgba(0,0,0,0.02)");
+
         H2 title = new H2("Annuaire des Étudiants");
+        title.getStyle().set("margin", "0").set("font-size", "1.5rem");
+        header.add(title);
 
-        // 2. Barre de recherche
+        // CONTENU
+        VerticalLayout mainContent = new VerticalLayout();
+        mainContent.setSizeFull();
+        mainContent.setPadding(true);
+        
+        // CARTE
+        VerticalLayout gridCard = new VerticalLayout();
+        gridCard.setSizeFull();
+        gridCard.setPadding(false);
+        gridCard.setSpacing(false);
+        
+        gridCard.getStyle()
+            .set("background", "white")
+            .set("border-radius", "16px")
+            .set("box-shadow", "var(--lumo-box-shadow-s)")
+            .set("overflow", "hidden");
+
+        HorizontalLayout toolbar = new HorizontalLayout(searchBar);
+        toolbar.setWidthFull();
+        toolbar.setPadding(true);
+        searchBar.setMaxWidth("400px");
+        searchBar.getStyle().set("margin", "0");
+
         configureSearchBar();
-
-        // 3. Configuration de la Grille
         configureGrid();
 
-        // 4. Chargement des données (Filtrées)
-        refreshGrid();
-
-        add(title, searchBar, grid);
-    }
-
-    private void configureSearchBar() {
-        // Listener pour filtrer la grille en temps réel
-        searchBar.addValueChangeListener(e -> applyFilter());
-    }
-
-    private void applyFilter() {
-        if (dataProvider != null) {
-            dataProvider.clearFilters();
-
-            String searchTerm = searchBar.getSearchValue(); // lowercase + trim
-
-            if (!searchBar.isSearchEmpty()) {
-                dataProvider.addFilter(student -> {
-                    String name = student.getName().toLowerCase();
-                    String email = student.getEmail().toLowerCase();
-                    String code = student.getStudentCode().toLowerCase();
-
-                    return name.contains(searchTerm)
-                        || email.contains(searchTerm)
-                        || code.contains(searchTerm);
-                });
-            }
-        }
-    }
-
-	private void configureGrid() {
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
+        gridCard.add(toolbar, grid);
+        mainContent.add(gridCard);
+        add(header, mainContent);
         
-        // Colonne Avatar + Nom
+        refreshGrid();
+    }
+
+    private void configureGrid() {
         grid.addColumn(new ComponentRenderer<>(student -> {
             HorizontalLayout row = new HorizontalLayout();
             row.setAlignItems(Alignment.CENTER);
+            row.setSpacing(true);
             
             Avatar avatar = new Avatar(student.getName());
+            avatar.addThemeVariants(com.vaadin.flow.component.avatar.AvatarVariant.LUMO_SMALL);
             
             Span name = new Span(student.getName());
+            name.getStyle().set("font-weight", "500");
+            
             Span email = new Span(student.getEmail());
-            email.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size", "var(--lumo-font-size-s)");
+            email.getStyle()
+                .set("color", "var(--lumo-secondary-text-color)")
+                .set("font-size", "var(--lumo-font-size-s)");
             
             VerticalLayout column = new VerticalLayout(name, email);
             column.setPadding(false);
@@ -106,78 +118,74 @@ public class AdminStudentView extends VerticalLayout {
             return row;
         })).setHeader("Étudiant").setAutoWidth(true);
 
-        // Colonne Code Étudiant
-        grid.addColumn(StudentDTO::getStudentCode).setHeader("Code Étudiant");
+        grid.addColumn(StudentDTO::getStudentCode)
+            .setHeader("Code Étudiant")
+            .setAutoWidth(true);
 
-        // --- MODIFICATION ICI : VÉRIFICATION DU RÔLE ADMIN ---
-        
-        // 1. On récupère l'authentification
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        // 2. On vérifie si l'utilisateur a le rôle "ROLE_ADMIN"
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(grantedAuthority -> "ROLE_ADMIN".equals(grantedAuthority.getAuthority()));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
 
-        // 3. On ajoute la colonne SEULEMENT si c'est un admin
         if (isAdmin) {
             grid.addComponentColumn(student -> {
-                String currentUsername = authentication.getName();
-
-                // Layout horizontal pour contenir les boutons
                 HorizontalLayout actionsLayout = new HorizontalLayout();
-                actionsLayout.setSpacing(true);
-
-                // Bouton "Voir profil"
+                
                 Button viewBtn = new Button(VaadinIcon.EYE.create());
+                viewBtn.getStyle().set("cursor", "pointer");
                 viewBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
                 viewBtn.setTooltipText("Voir le profil");
                 viewBtn.addClickListener(e -> {
-                    AdminStudentProfileDialog dialog = new AdminStudentProfileDialog(
-                        studentService,
-                        student.getId(),
-                        this::refreshGrid
-                    );
-                    dialog.open();
+                    new AdminStudentProfileDialog(studentService, student.getId(), this::refreshGrid).open();
                 });
 
-                // Bouton "Supprimer"
                 Button deleteBtn = new Button(VaadinIcon.TRASH.create());
+                deleteBtn.getStyle().set("cursor", "pointer");
                 deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
-
-                // Protection contre la suppression de soi-même
-                if (student.getUsername().equals(currentUsername)) {
+                
+                if (student.getUsername().equals(authentication.getName())) {
                     deleteBtn.setEnabled(false);
-                    deleteBtn.setTooltipText("Vous ne pouvez pas supprimer votre propre compte");
                 } else {
                     deleteBtn.addClickListener(e -> {
-                        ConfirmDeleteDialog dialog = new ConfirmDeleteDialog(
-                            "Supprimer l'étudiant",
-                            "Voulez-vous vraiment supprimer l'étudiant \"" + student.getName() + "\" ?",
-                            () -> studentService.deleteStudentById(student.getId()),
-                            this::refreshGrid
-                        );
-                        dialog.open();
+                        new ConfirmDeleteDialog("Supprimer", 
+                            "Voulez-vous supprimer " + student.getName() + " ?", 
+                            () -> studentService.deleteStudentById(student.getId()), 
+                            this::refreshGrid).open();
                     });
                 }
 
                 actionsLayout.add(viewBtn, deleteBtn);
                 return actionsLayout;
-            }).setHeader("Actions");
+            }).setHeader("Actions").setAutoWidth(true);
+        }
+    }
+
+    private void configureSearchBar() {
+        searchBar.addValueChangeListener(e -> applyFilter());
+    }
+
+    private void applyFilter() {
+        if (dataProvider != null) {
+            dataProvider.clearFilters();
+            String searchTerm = searchBar.getSearchValue();
+            if (!searchBar.isSearchEmpty()) {
+                dataProvider.addFilter(student -> {
+                    String name = student.getName().toLowerCase();
+                    String email = student.getEmail().toLowerCase();
+                    String code = student.getStudentCode().toLowerCase();
+                    return name.contains(searchTerm) || email.contains(searchTerm) || code.contains(searchTerm);
+                });
+            }
         }
     }
 
     private void refreshGrid() {
-        // Filtrer pour n'afficher que les étudiants approuvés (approved=true) et non-admins
         List<StudentDTO> students = studentService.getAllStudents().stream()
-                .filter(s -> !"ROLE_ADMIN".equals(s.getRole())) // Exclure les admins
-                .filter(StudentDTO::isApproved) // N'afficher que les étudiants approuvés
+                .filter(s -> !"ROLE_ADMIN".equals(s.getRole()))
+                .filter(StudentDTO::isApproved)
                 .collect(Collectors.toList());
 
-        // Utiliser un ListDataProvider pour permettre le filtrage
         dataProvider = new ListDataProvider<>(students);
         grid.setDataProvider(dataProvider);
-
-        // Réappliquer le filtre de recherche si un terme est présent
         applyFilter();
     }
 }

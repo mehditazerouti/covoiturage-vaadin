@@ -10,8 +10,10 @@ import com.example.covoiturage_vaadin.ui.component.badge.TripTypeBadge;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -31,52 +33,88 @@ public class MyBookingsView extends VerticalLayout {
     public MyBookingsView(BookingService bookingService) {
         this.bookingService = bookingService;
 
+        setSizeFull();
+        setPadding(false);
+        setSpacing(false);
+        // Fond gris global
+        getStyle().set("background-color", "var(--lumo-contrast-5pct)");
+
+        // --- 1. HEADER (Détaché) ---
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setPadding(true);
+        header.setAlignItems(Alignment.CENTER);
+        header.getStyle()
+            .set("background", "white")
+            .set("border-bottom", "1px solid var(--lumo-contrast-10pct)")
+            .set("box-shadow", "0 2px 4px rgba(0,0,0,0.02)");
+
         H2 title = new H2("Mes réservations");
+        title.getStyle().set("margin", "0").set("font-size", "1.5rem");
+        
+        header.add(title);
 
-        // Configuration de la grille
+        // --- 2. CONTENU PRINCIPAL ---
+        VerticalLayout mainContent = new VerticalLayout();
+        mainContent.setSizeFull();
+        mainContent.setPadding(true);
+        mainContent.setMaxWidth("1200px"); // Centré sur grand écran
+        mainContent.setAlignSelf(Alignment.CENTER, mainContent);
+
+        // --- 3. CARTE DE GRILLE ---
+        VerticalLayout gridCard = new VerticalLayout();
+        gridCard.setSizeFull();
+        gridCard.setPadding(false);
+        gridCard.setSpacing(false);
+        
+        // Style Clean Card
+        gridCard.getStyle()
+            .set("background", "white")
+            .set("border-radius", "16px")
+            .set("box-shadow", "0 10px 40px rgba(0,0,0,0.06)")
+            .set("overflow", "hidden"); // Coins arrondis pour la grille
+
         configureGrid();
+        
+        // Enlever les bordures par défaut pour fusionner avec la carte
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
+        grid.getStyle().set("border", "none");
 
-        // Afficher les réservations au démarrage
+        gridCard.add(grid);
+
+        mainContent.add(gridCard);
+        
+        add(header, mainContent);
+
+        // Charger les données
         updateList();
-
-        add(title, grid);
     }
 
     private void configureGrid() {
         grid.removeAllColumns();
 
-        // Colonne pour le trajet (Départ → Destination)
+        // Colonne Trajet
         grid.addColumn(booking ->
             booking.getTrip().getDepartureAddress() + " → " + booking.getTrip().getDestinationAddress()
-        ).setHeader("Trajet").setAutoWidth(true);
+        ).setHeader("Trajet").setAutoWidth(true).setFlexGrow(1);
 
-        // Colonne pour la date et heure
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        // Colonne Date & Heure
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm");
         grid.addColumn(booking ->
             booking.getTrip().getDepartureTime().format(formatter)
-        ).setHeader("Date & Heure").setAutoWidth(true);
+        ).setHeader("Départ").setAutoWidth(true);
 
-        // Colonne pour le conducteur
+        // Colonne Conducteur
         grid.addColumn(booking ->
             booking.getTrip().getDriver().getName()
         ).setHeader("Conducteur").setAutoWidth(true);
 
-        // Colonne pour le nombre de places totales du trajet
-        grid.addColumn(booking ->
-            booking.getTrip().getAvailableSeats() + "/" + booking.getTrip().getTotalSeats() + " places"
-        ).setHeader("Places dispo").setAutoWidth(true);
-
-        // Colonne Type (Régulier/Ponctuel)
+        // Colonne Type
         grid.addComponentColumn(booking ->
             new TripTypeBadge(booking.getTrip().isRegular())
         ).setHeader("Type").setAutoWidth(true);
 
-        // Colonne pour la date de réservation
-        grid.addColumn(booking ->
-            booking.getBookedAt().format(formatter)
-        ).setHeader("Réservé le").setAutoWidth(true);
-
-        // Colonne pour le statut
+        // Colonne Statut
         grid.addComponentColumn(booking ->
             new StatusBadge(booking.getStatus())
         ).setHeader("Statut").setAutoWidth(true);
@@ -85,7 +123,7 @@ public class MyBookingsView extends VerticalLayout {
         grid.addComponentColumn(booking -> {
             if (booking.getStatus() == BookingStatus.CONFIRMED || booking.getStatus() == BookingStatus.PENDING) {
                 Button cancelBtn = new Button("Annuler");
-                cancelBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
+                cancelBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
                 cancelBtn.addClickListener(e -> {
                     BookingCancelDialog dialog = new BookingCancelDialog(booking, bookingService, this::updateList);
                     dialog.open();
@@ -94,11 +132,8 @@ public class MyBookingsView extends VerticalLayout {
             }
             Span cancelled = new Span("—");
             cancelled.getStyle().set("color", "var(--lumo-disabled-text-color)");
-            cancelled.getStyle().set("font-style", "italic");
             return cancelled;
         }).setHeader("Actions").setAutoWidth(true);
-
-        grid.getColumns().forEach(col -> col.setAutoWidth(true));
     }
 
     private void updateList() {

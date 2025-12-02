@@ -26,10 +26,6 @@ import jakarta.annotation.security.RolesAllowed;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Vue d'administration pour valider ou rejeter les étudiants en attente.
- * Affiche uniquement les étudiants avec approved=false.
- */
 @Route(value = "admin/pending-students", layout = MainLayout.class)
 @PageTitle("Étudiants en Attente - Admin")
 @RolesAllowed("ADMIN")
@@ -40,7 +36,7 @@ public class PendingStudentsView extends VerticalLayout {
     private final SecurityContextService securityContext;
 
     private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false);
-    private final SearchBar searchBar = new SearchBar("Rechercher par nom, email ou code étudiant...");
+    private final SearchBar searchBar = new SearchBar("Rechercher...");
     private ListDataProvider<StudentDTO> dataProvider;
 
     public PendingStudentsView(StudentService studentService,
@@ -51,195 +47,154 @@ public class PendingStudentsView extends VerticalLayout {
         this.securityContext = securityContext;
 
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
+        setPadding(false);
+        setSpacing(false);
+        getStyle().set("background-color", "var(--lumo-contrast-5pct)");
 
-        // Titre
-        H2 title = new H2("Étudiants en attente de validation");
-        Span subtitle = new Span("Ces étudiants se sont inscrits avec un code non whitelisté");
-        subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        // --- 1. HEADER ---
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setPadding(true);
+        header.setAlignItems(Alignment.CENTER);
+        header.getStyle()
+            .set("background", "white")
+            .set("border-bottom", "1px solid var(--lumo-contrast-10pct)")
+            .set("box-shadow", "0 2px 4px rgba(0,0,0,0.02)");
 
-        // Barre de recherche
-        configureSearchBar();
+        VerticalLayout titles = new VerticalLayout();
+        titles.setPadding(false);
+        titles.setSpacing(false);
+        
+        H2 title = new H2("Validations en attente");
+        title.getStyle().set("margin", "0").set("font-size", "1.5rem");
+        
+        Span subtitle = new Span("Inscriptions nécessitant une approbation manuelle");
+        subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size", "var(--lumo-font-size-s)");
+        
+        titles.add(title, subtitle);
 
-        // Configuration de la grille
+        header.add(titles);
+
+        // --- 2. CONTENU ---
+        VerticalLayout mainContent = new VerticalLayout();
+        mainContent.setSizeFull();
+        mainContent.setPadding(true);
+
+        // --- 3. CARTE GRILLE ---
+        VerticalLayout gridCard = new VerticalLayout();
+        gridCard.setSizeFull();
+        gridCard.setPadding(false);
+        gridCard.setSpacing(false);
+        gridCard.getStyle()
+            .set("background", "white")
+            .set("border-radius", "16px")
+            .set("box-shadow", "0 10px 40px rgba(0,0,0,0.06)")
+            .set("overflow", "hidden");
+
+        // Toolbar
+        HorizontalLayout toolbar = new HorizontalLayout(searchBar);
+        toolbar.setWidthFull();
+        toolbar.setPadding(true);
+        toolbar.setAlignItems(Alignment.CENTER);
+        
+        searchBar.setWidth("100%");
+        searchBar.setMaxWidth("400px");
+        searchBar.getStyle().set("margin", "0"); // Reset marge
+
         configureGrid();
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
+        grid.getStyle().set("border", "none");
 
-        add(title, subtitle, searchBar, grid);
+        gridCard.add(toolbar, grid);
+        mainContent.add(gridCard);
+        add(header, mainContent);
 
-        // Charger les données
+        configureSearchBar();
         refreshGrid();
     }
 
     private void configureSearchBar() {
-        // Listener pour filtrer la grille en temps réel
         searchBar.addValueChangeListener(e -> applyFilter());
     }
 
     private void applyFilter() {
         if (dataProvider != null) {
             dataProvider.clearFilters();
-
-            String searchTerm = searchBar.getSearchValue(); // lowercase + trim
-
+            String searchTerm = searchBar.getSearchValue();
             if (!searchBar.isSearchEmpty()) {
                 dataProvider.addFilter(student -> {
                     String name = student.getName().toLowerCase();
                     String email = student.getEmail().toLowerCase();
                     String code = student.getStudentCode().toLowerCase();
-
-                    return name.contains(searchTerm)
-                        || email.contains(searchTerm)
-                        || code.contains(searchTerm);
+                    return name.contains(searchTerm) || email.contains(searchTerm) || code.contains(searchTerm);
                 });
             }
         }
     }
 
     private void configureGrid() {
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
+        grid.addColumn(StudentDTO::getName).setHeader("Nom").setSortable(true).setAutoWidth(true);
+        grid.addColumn(StudentDTO::getEmail).setHeader("Email").setAutoWidth(true);
+        grid.addColumn(StudentDTO::getStudentCode).setHeader("Code").setAutoWidth(true);
+        
+        grid.addColumn(student -> student.getCreatedAt() != null ? student.getCreatedAt().toLocalDate().toString() : "")
+            .setHeader("Date").setAutoWidth(true);
 
-        // Colonne Nom
-        grid.addColumn(StudentDTO::getName)
-            .setHeader("Nom")
-            .setSortable(true)
-            .setAutoWidth(true);
-
-        // Colonne Email
-        grid.addColumn(StudentDTO::getEmail)
-            .setHeader("Email")
-            .setAutoWidth(true);
-
-        // Colonne Code étudiant
-        grid.addColumn(StudentDTO::getStudentCode)
-            .setHeader("Code étudiant")
-            .setAutoWidth(true);
-
-        // Colonne Date
-        grid.addColumn(student -> {
-            if (student.getCreatedAt() != null) {
-                return student.getCreatedAt().toLocalDate().toString();
-            }
-            return "";
-        }).setHeader("Date inscription").setAutoWidth(true);
-
-        // Colonne Actions
         grid.addComponentColumn(student -> {
-            HorizontalLayout actions = new HorizontalLayout();
-            actions.setSpacing(true);
-
-            // Bouton Approuver
-            Button approveBtn = new Button("Approuver", VaadinIcon.CHECK.create());
-            approveBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+            Button approveBtn = new Button(VaadinIcon.CHECK.create());
+            approveBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+            approveBtn.setTooltipText("Approuver");
             approveBtn.addClickListener(e -> confirmApprove(student));
 
-            // Bouton Rejeter
-            Button rejectBtn = new Button("Rejeter", VaadinIcon.CLOSE.create());
-            rejectBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            Button rejectBtn = new Button(VaadinIcon.CLOSE.create());
+            rejectBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            rejectBtn.setTooltipText("Rejeter");
             rejectBtn.addClickListener(e -> confirmReject(student));
 
-            actions.add(approveBtn, rejectBtn);
+            HorizontalLayout actions = new HorizontalLayout(approveBtn, rejectBtn);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Actions");
     }
 
     private void confirmApprove(StudentDTO student) {
-        ConfirmDialog confirmDialog = new ConfirmDialog();
-        confirmDialog.setHeader("Approuver l'étudiant");
-        confirmDialog.setText(
-            "Voulez-vous vraiment approuver l'étudiant suivant ?\n\n" +
-            "Nom : " + student.getName() + "\n" +
-            "Email : " + student.getEmail() + "\n" +
-            "Code : " + student.getStudentCode() + "\n\n" +
-            "→ Son code sera ajouté à la whitelist et son compte sera activé."
-        );
-
-        confirmDialog.setCancelable(true);
-        confirmDialog.setCancelText("Annuler");
-
-        confirmDialog.setConfirmText("Approuver");
-        confirmDialog.setConfirmButtonTheme("success primary");
-
-        confirmDialog.addConfirmListener(event -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Approuver ?");
+        dialog.setText("Ajouter " + student.getName() + " à la whitelist ?");
+        dialog.setConfirmText("Oui, approuver");
+        dialog.setConfirmButtonTheme("success primary");
+        dialog.setCancelable(true);
+        dialog.addConfirmListener(e -> {
             try {
-                String adminUsername = securityContext.getCurrentUsername().orElse("UNKNOWN");
-                authService.approveStudentById(student.getId(), adminUsername);
-
-                Notification.show(
-                    "✅ Étudiant approuvé avec succès ! Il peut maintenant se connecter.",
-                    5000,
-                    Notification.Position.MIDDLE
-                ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
+                String admin = securityContext.getCurrentUsername().orElse("UNKNOWN");
+                authService.approveStudentById(student.getId(), admin);
+                Notification.show("Approuvé !", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 refreshGrid();
-            } catch (Exception e) {
-                Notification.show("❌ Erreur : " + e.getMessage(), 5000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
+            } catch (Exception ex) { Notification.show("Erreur: " + ex.getMessage()); }
         });
-
-        confirmDialog.open();
+        dialog.open();
     }
 
     private void confirmReject(StudentDTO student) {
-        ConfirmDialog confirmDialog = new ConfirmDialog();
-        confirmDialog.setHeader("Rejeter l'étudiant");
-        confirmDialog.setText(
-            "Voulez-vous vraiment rejeter l'étudiant suivant ?\n\n" +
-            "Nom : " + student.getName() + "\n" +
-            "Email : " + student.getEmail() + "\n" +
-            "Code : " + student.getStudentCode() + "\n\n" +
-            "⚠️ Cette action est irréversible. Le compte sera supprimé définitivement."
-        );
-
-        confirmDialog.setCancelable(true);
-        confirmDialog.setCancelText("Annuler");
-
-        confirmDialog.setConfirmText("Rejeter et supprimer");
-        confirmDialog.setConfirmButtonTheme("error primary");
-
-        confirmDialog.addConfirmListener(event -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Rejeter ?");
+        dialog.setText("Supprimer définitivement la demande de " + student.getName() + " ?");
+        dialog.setConfirmText("Rejeter");
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.setCancelable(true);
+        dialog.addConfirmListener(e -> {
             try {
                 studentService.deleteStudentById(student.getId());
-
-                Notification.show(
-                    "✅ Étudiant rejeté et supprimé.",
-                    3000,
-                    Notification.Position.MIDDLE
-                ).addThemeVariants(NotificationVariant.LUMO_CONTRAST);
-
+                Notification.show("Supprimé.", 3000, Notification.Position.MIDDLE);
                 refreshGrid();
-            } catch (Exception e) {
-                Notification.show("❌ Erreur : " + e.getMessage(), 5000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
+            } catch (Exception ex) { Notification.show("Erreur: " + ex.getMessage()); }
         });
-
-        confirmDialog.open();
+        dialog.open();
     }
 
     private void refreshGrid() {
-        // Filtrer pour n'afficher que les étudiants NON approuvés (pending)
-        List<StudentDTO> pendingStudents = studentService.getAllStudents().stream()
-            .filter(s -> !s.isApproved())
-            .collect(Collectors.toList());
-
-        // Utiliser un ListDataProvider pour permettre le filtrage
-        dataProvider = new ListDataProvider<>(pendingStudents);
+        List<StudentDTO> pending = studentService.getAllStudents().stream().filter(s -> !s.isApproved()).collect(Collectors.toList());
+        dataProvider = new ListDataProvider<>(pending);
         grid.setDataProvider(dataProvider);
-
-        // Réappliquer le filtre de recherche si un terme est présent
         applyFilter();
-
-        // Message si aucun étudiant en attente
-        if (pendingStudents.isEmpty()) {
-            Span emptyMessage = new Span("✅ Aucun étudiant en attente de validation");
-            emptyMessage.getStyle()
-                .set("color", "var(--lumo-secondary-text-color)")
-                .set("font-style", "italic")
-                .set("padding", "var(--lumo-space-m)");
-            // Note : Vaadin Grid ne supporte pas directement les empty states,
-            // mais on pourrait l'ajouter avec un layout conditionnel si nécessaire
-        }
     }
 }
