@@ -5,6 +5,7 @@ import com.example.covoiturage_vaadin.application.services.SecurityContextServic
 import com.example.covoiturage_vaadin.domain.model.AllowedStudentCode;
 import com.example.covoiturage_vaadin.ui.component.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
+import com.example.covoiturage_vaadin.ui.component.SearchBar;
 import com.example.covoiturage_vaadin.ui.component.WhitelistCodeDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -16,6 +17,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
@@ -35,7 +37,9 @@ public class AdminWhitelistView extends VerticalLayout {
     private final SecurityContextService securityContext;
 
     private final Grid<AllowedStudentCode> grid = new Grid<>(AllowedStudentCode.class, false);
+    private final SearchBar searchBar = new SearchBar("Rechercher par code étudiant...");
     private final Button addButton = new Button("Ajouter un code", VaadinIcon.PLUS.create());
+    private ListDataProvider<AllowedStudentCode> dataProvider;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -51,16 +55,46 @@ public class AdminWhitelistView extends VerticalLayout {
         // Titre
         H2 title = new H2("Gestion des codes étudiants autorisés");
 
+        // Barre de recherche
+        configureSearchBar();
+
         // Configuration de la grille
         configureGrid();
 
         // Barre d'outils
         HorizontalLayout toolbar = createToolbar();
 
-        add(title, toolbar, grid);
+        add(title, searchBar, toolbar, grid);
 
         // Charger les données
         refreshGrid();
+    }
+
+    private void configureSearchBar() {
+        // Listener pour filtrer la grille en temps réel
+        searchBar.addValueChangeListener(e -> applyFilter());
+    }
+
+    private void applyFilter() {
+        if (dataProvider != null) {
+            dataProvider.clearFilters();
+
+            String searchTerm = searchBar.getSearchValue(); // lowercase + trim
+
+            if (!searchBar.isSearchEmpty()) {
+                dataProvider.addFilter(code -> {
+                    String studentCode = code.getStudentCode().toLowerCase();
+                    String createdBy = code.getCreatedBy() != null ? code.getCreatedBy().toLowerCase() : "";
+                    String usedBy = (code.isUsed() && code.getUsedBy() != null)
+                        ? code.getUsedBy().getName().toLowerCase()
+                        : "";
+
+                    return studentCode.contains(searchTerm)
+                        || createdBy.contains(searchTerm)
+                        || usedBy.contains(searchTerm);
+                });
+            }
+        }
     }
 
     private HorizontalLayout createToolbar() {
@@ -139,6 +173,11 @@ public class AdminWhitelistView extends VerticalLayout {
     }
 
     private void refreshGrid() {
-        grid.setItems(codeService.findAll());
+        // Utiliser un ListDataProvider pour permettre le filtrage
+        dataProvider = new ListDataProvider<>(codeService.findAll());
+        grid.setDataProvider(dataProvider);
+
+        // Réappliquer le filtre de recherche si un terme est présent
+        applyFilter();
     }
 }

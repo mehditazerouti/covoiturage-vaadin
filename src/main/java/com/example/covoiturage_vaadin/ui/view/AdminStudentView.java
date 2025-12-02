@@ -4,6 +4,7 @@ import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.component.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
+import com.example.covoiturage_vaadin.ui.component.SearchBar;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -14,6 +15,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -31,6 +33,8 @@ public class AdminStudentView extends VerticalLayout {
 
     private final StudentService studentService;
     private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false); // false = pas de colonnes auto
+    private final SearchBar searchBar = new SearchBar("Rechercher par nom, email ou code étudiant...");
+    private ListDataProvider<StudentDTO> dataProvider;
 
     public AdminStudentView(StudentService studentService) {
         this.studentService = studentService;
@@ -42,13 +46,41 @@ public class AdminStudentView extends VerticalLayout {
         // 1. Titre Moderne
         H2 title = new H2("Annuaire des Étudiants");
 
-        // 2. Configuration de la Grille
+        // 2. Barre de recherche
+        configureSearchBar();
+
+        // 3. Configuration de la Grille
         configureGrid();
 
-        // 3. Chargement des données (Filtrées)
+        // 4. Chargement des données (Filtrées)
         refreshGrid();
 
-        add(title, grid);
+        add(title, searchBar, grid);
+    }
+
+    private void configureSearchBar() {
+        // Listener pour filtrer la grille en temps réel
+        searchBar.addValueChangeListener(e -> applyFilter());
+    }
+
+    private void applyFilter() {
+        if (dataProvider != null) {
+            dataProvider.clearFilters();
+
+            String searchTerm = searchBar.getSearchValue(); // lowercase + trim
+
+            if (!searchBar.isSearchEmpty()) {
+                dataProvider.addFilter(student -> {
+                    String name = student.getName().toLowerCase();
+                    String email = student.getEmail().toLowerCase();
+                    String code = student.getStudentCode().toLowerCase();
+
+                    return name.contains(searchTerm)
+                        || email.contains(searchTerm)
+                        || code.contains(searchTerm);
+                });
+            }
+        }
     }
 
 	private void configureGrid() {
@@ -120,6 +152,11 @@ public class AdminStudentView extends VerticalLayout {
                 .filter(StudentDTO::isApproved) // N'afficher que les étudiants approuvés
                 .collect(Collectors.toList());
 
-        grid.setItems(students);
+        // Utiliser un ListDataProvider pour permettre le filtrage
+        dataProvider = new ListDataProvider<>(students);
+        grid.setDataProvider(dataProvider);
+
+        // Réappliquer le filtre de recherche si un terme est présent
+        applyFilter();
     }
 }

@@ -28,10 +28,16 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
   - Ajout/suppression de codes
   - Visualisation des codes utilisés et leur attribution
   - Protection : impossible de supprimer un code déjà utilisé
+  - 🔍 **Recherche en temps réel** : Par code, créateur ou utilisateur
 - **Étudiants en attente** : Validation des inscriptions
   - Approuver : whitelist le code + active le compte
   - Rejeter : supprime le compte
+  - 🔍 **Recherche en temps réel** : Par nom, email ou code étudiant
+- **Annuaire étudiants** : Liste complète des étudiants approuvés
+  - Suppression d'étudiants (avec protection anti-auto-suppression)
+  - 🔍 **Recherche en temps réel** : Par nom, email ou code étudiant
 - **Création manuelle** : Ajout d'étudiants par l'admin
+  - Auto-whitelist du code si non présent (validation implicite)
 
 ### ✅ Gestion des trajets
 - **Proposer un trajet** : Formulaire avec auto-assignation du conducteur connecté
@@ -76,6 +82,7 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
   - `TripBookingDialog` : Dialog de réservation avec récapitulatif
   - `WhitelistCodeDialog` : Dialog d'ajout de code avec validation
   - `TripEditDialog` : Dialog d'édition/suppression de trajet
+  - `SearchBar` : Barre de recherche réutilisable avec filtrage en temps réel (300ms debounce)
 - **Performance** : Scroll infini Vaadin (chargement progressif automatique)
 
 ## Stack technique
@@ -259,6 +266,29 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 ```
 
 ## Historique des développements
+
+### Composant SearchBar + Recherche dans vues admin (02/12/2025) ✅
+- **Implémenté** : Composant de recherche réutilisable avec intégration dans 3 vues admin
+- **Nouveau composant** :
+  - `SearchBar.java` : TextField avec icône de recherche, bouton clear, debounce 300ms
+  - Méthodes utilitaires : `getSearchValue()` (lowercase + trim), `isSearchEmpty()`
+  - Style cohérent : max-width 400px, prefix icon (VaadinIcon.SEARCH)
+  - Accessibilité : aria-label pour lecteurs d'écran
+- **Vues refactorisées** (3 fichiers modifiés) :
+  - `AdminStudentView` : Recherche par **nom, email OU code étudiant**
+  - `AdminWhitelistView` : Recherche par **code, créateur OU utilisateur**
+  - `PendingStudentsView` : Recherche par **nom, email OU code étudiant**
+- **Technique** :
+  - Utilisation de `ListDataProvider<T>` pour filtrage côté client
+  - Filtres dynamiques avec `dataProvider.addFilter()` et `clearFilters()`
+  - Recherche insensible à la casse (toLowerCase())
+  - Recherche en temps réel avec ValueChangeMode.LAZY (300ms)
+- **Avantages** :
+  - 🔍 UX améliorée : Recherche instantanée dans toutes les vues admin
+  - ♻️ Code réutilisable : Un seul composant pour toutes les recherches
+  - ⚡ Performance : Filtrage côté client sans requête serveur
+  - 🎯 Flexible : Placeholder et maxWidth personnalisables
+- **Total** : 1 nouveau composant, 3 vues modifiées
 
 ### Migration complète vers l'architecture DTO (02/12/2025) ✅
 - **Implémenté** : Migration COMPLÈTE de l'application vers l'architecture DTO

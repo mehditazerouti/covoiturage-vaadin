@@ -154,9 +154,17 @@ public class StudentService {
      * Création d'un étudiant par un admin.
      * Génère automatiquement le mot de passe : 4 lettres du nom + 4 premiers caractères du code.
      * Exemple : nom="Bouskine", code="22405100" → password="bous2240"
+     *
+     * ⚠️ IMPORTANT : Si le code n'est pas dans la whitelist, il sera automatiquement ajouté.
+     * Logique : Quand un admin crée manuellement un étudiant, c'est une validation implicite du code.
+     *
+     * @param name Nom complet de l'étudiant
+     * @param email Email de l'étudiant
+     * @param studentCode Code étudiant
+     * @param adminUsername Username de l'admin qui crée l'étudiant (pour traçabilité whitelist)
      */
     @Transactional
-    public StudentCreationResult createStudentAsAdmin(String name, String email, String studentCode) {
+    public StudentCreationResult createStudentAsAdmin(String name, String email, String studentCode, String adminUsername) {
         // Validations
         if (existsByStudentCode(studentCode)) {
             throw new IllegalArgumentException("Ce code étudiant est déjà utilisé");
@@ -188,10 +196,14 @@ public class StudentService {
 
         Student savedStudent = studentRepository.save(student);
 
-        // Si le code étudiant est dans la whitelist, le marquer comme utilisé
-        if (codeService.isCodeWhitelisted(studentCode)) {
-            codeService.markCodeAsUsed(studentCode, savedStudent);
+        // ✅ AUTO-WHITELIST : Si le code n'est pas dans la whitelist, l'ajouter automatiquement
+        // Logique : Création manuelle par admin = validation implicite du code étudiant
+        if (!codeService.isCodeWhitelisted(studentCode)) {
+            codeService.addAllowedCode(studentCode, adminUsername);
         }
+
+        // Marquer le code comme utilisé par cet étudiant
+        codeService.markCodeAsUsed(studentCode, savedStudent);
 
         // Convertir en DTO avant de retourner (sécurité : pas de password)
         StudentDTO studentDTO = studentMapper.toDTO(savedStudent);

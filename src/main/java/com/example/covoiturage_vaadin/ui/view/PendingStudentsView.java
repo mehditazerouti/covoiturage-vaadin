@@ -5,6 +5,7 @@ import com.example.covoiturage_vaadin.application.services.AuthenticationService
 import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
+import com.example.covoiturage_vaadin.ui.component.SearchBar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -17,6 +18,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
@@ -38,6 +40,8 @@ public class PendingStudentsView extends VerticalLayout {
     private final SecurityContextService securityContext;
 
     private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false);
+    private final SearchBar searchBar = new SearchBar("Rechercher par nom, email ou code étudiant...");
+    private ListDataProvider<StudentDTO> dataProvider;
 
     public PendingStudentsView(StudentService studentService,
                               AuthenticationService authService,
@@ -55,13 +59,41 @@ public class PendingStudentsView extends VerticalLayout {
         Span subtitle = new Span("Ces étudiants se sont inscrits avec un code non whitelisté");
         subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
+        // Barre de recherche
+        configureSearchBar();
+
         // Configuration de la grille
         configureGrid();
 
-        add(title, subtitle, grid);
+        add(title, subtitle, searchBar, grid);
 
         // Charger les données
         refreshGrid();
+    }
+
+    private void configureSearchBar() {
+        // Listener pour filtrer la grille en temps réel
+        searchBar.addValueChangeListener(e -> applyFilter());
+    }
+
+    private void applyFilter() {
+        if (dataProvider != null) {
+            dataProvider.clearFilters();
+
+            String searchTerm = searchBar.getSearchValue(); // lowercase + trim
+
+            if (!searchBar.isSearchEmpty()) {
+                dataProvider.addFilter(student -> {
+                    String name = student.getName().toLowerCase();
+                    String email = student.getEmail().toLowerCase();
+                    String code = student.getStudentCode().toLowerCase();
+
+                    return name.contains(searchTerm)
+                        || email.contains(searchTerm)
+                        || code.contains(searchTerm);
+                });
+            }
+        }
     }
 
     private void configureGrid() {
@@ -192,7 +224,12 @@ public class PendingStudentsView extends VerticalLayout {
             .filter(s -> !s.isApproved())
             .collect(Collectors.toList());
 
-        grid.setItems(pendingStudents);
+        // Utiliser un ListDataProvider pour permettre le filtrage
+        dataProvider = new ListDataProvider<>(pendingStudents);
+        grid.setDataProvider(dataProvider);
+
+        // Réappliquer le filtre de recherche si un terme est présent
+        applyFilter();
 
         // Message si aucun étudiant en attente
         if (pendingStudents.isEmpty()) {

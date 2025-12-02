@@ -1,5 +1,6 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -34,6 +35,7 @@ import jakarta.annotation.security.RolesAllowed;
 public class AdminStudentCreationView extends VerticalLayout {
 
     private final StudentService studentService;
+    private final SecurityContextService securityContext;
 
     private final TextField nameField = new TextField("Nom complet");
     private final EmailField emailField = new EmailField("Email");
@@ -41,8 +43,10 @@ public class AdminStudentCreationView extends VerticalLayout {
     private final Button createButton = new Button("Créer l'étudiant", VaadinIcon.USER_CHECK.create());
     private final Button clearButton = new Button("Effacer");
 
-    public AdminStudentCreationView(StudentService studentService) {
+    public AdminStudentCreationView(StudentService studentService,
+                                   SecurityContextService securityContext) {
         this.studentService = studentService;
+        this.securityContext = securityContext;
 
         setSizeFull();
         setPadding(true);
@@ -132,10 +136,15 @@ public class AdminStudentCreationView extends VerticalLayout {
 
     private void createStudent() {
         try {
+            // Récupérer le username de l'admin connecté
+            String adminUsername = securityContext.getCurrentUsername()
+                    .orElseThrow(() -> new IllegalStateException("Impossible de récupérer l'utilisateur connecté"));
+
             StudentService.StudentCreationResult result = studentService.createStudentAsAdmin(
                 nameField.getValue().trim(),
                 emailField.getValue().trim(),
-                studentCodeField.getValue().trim()
+                studentCodeField.getValue().trim(),
+                adminUsername  // ✅ Passer l'admin pour traçabilité whitelist
             );
 
             // Succès : afficher le mot de passe dans un dialog
@@ -148,6 +157,9 @@ public class AdminStudentCreationView extends VerticalLayout {
 
         } catch (IllegalArgumentException ex) {
             Notification.show("❌ Erreur : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        } catch (IllegalStateException ex) {
+            Notification.show("❌ Erreur système : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
                 .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
