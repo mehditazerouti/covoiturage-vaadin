@@ -3,7 +3,8 @@ package com.example.covoiturage_vaadin.ui.component.dialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -14,42 +15,27 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/**
- * Dialog de sélection d'avatar parmi les icônes Vaadin disponibles.
- *
- * Utilisation :
- * <pre>
- * AvatarSelectionDialog dialog = new AvatarSelectionDialog(selectedAvatar -> {
- *     // Traitement de l'avatar sélectionné
- *     studentService.updateAvatar(studentId, selectedAvatar);
- * });
- * dialog.open();
- * </pre>
- */
 public class AvatarSelectionDialog extends Dialog {
 
-    // Avatars disponibles (icônes Vaadin)
     private static final String[] AVAILABLE_AVATARS = {"USER", "MALE", "FEMALE"};
 
     private final Consumer<String> onSelect;
     private String selectedAvatar = "USER";
-    private final Map<String, Button> avatarButtons = new HashMap<>();
+    private final Map<String, Div> avatarButtons = new HashMap<>();
 
     public AvatarSelectionDialog(Consumer<String> onSelect) {
         this.onSelect = onSelect;
 
         setHeaderTitle("Choisir un avatar");
-        setWidth("400px");
+        setWidth("450px"); // Un peu plus large pour l'espacement
 
-        // Contenu
         VerticalLayout content = createContent();
-
-        // Boutons
-        Button selectButton = new Button("Sélectionner", e -> handleSelect());
-        selectButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
+        
+        // Pied de page modernisé
         Button cancelButton = new Button("Annuler", e -> close());
-
+        Button selectButton = new Button("Valider", e -> handleSelect());
+        selectButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        
         getFooter().add(cancelButton, selectButton);
         add(content);
     }
@@ -58,61 +44,95 @@ public class AvatarSelectionDialog extends Dialog {
         VerticalLayout layout = new VerticalLayout();
         layout.setPadding(false);
         layout.setSpacing(true);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER); // Tout centrer
 
-        H3 subtitle = new H3("Sélectionnez votre avatar :");
-        subtitle.getStyle().set("margin-top", "0");
+        // Petit texte explicatif plus discret
+        Span hint = new Span("Sélectionnez l'icône qui vous correspond le mieux");
+        hint.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        hint.getStyle().set("font-size", "var(--lumo-font-size-s)");
 
         HorizontalLayout avatarGrid = new HorizontalLayout();
         avatarGrid.setSpacing(true);
         avatarGrid.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        avatarGrid.getStyle().set("padding", "20px 0"); // Espace pour l'animation
 
         for (String avatarName : AVAILABLE_AVATARS) {
-            Button avatarButton = createAvatarButton(avatarName);
+            Div avatarButton = createAvatarButton(avatarName);
             avatarButtons.put(avatarName, avatarButton);
             avatarGrid.add(avatarButton);
         }
 
-        layout.add(subtitle, avatarGrid);
+        // Initialisation de l'état visuel correct
+        updateVisualSelection();
+
+        layout.add(hint, avatarGrid);
         return layout;
     }
 
-    private Button createAvatarButton(String avatarName) {
+    private Div createAvatarButton(String avatarName) {
         VaadinIcon vaadinIcon = VaadinIcon.valueOf(avatarName);
         Icon icon = vaadinIcon.create();
-        icon.setSize("48px");
+        icon.setSize("40px");
+        // On s'assure que l'icône elle-même n'a aucune marge parasite
+        icon.getStyle().set("margin", "0");
 
-        Button button = new Button(icon);
-        button.getStyle()
-            .set("width", "80px")
-            .set("height", "80px")
-            // AJOUTS POUR STABILISER LE CERCLE :
-            .set("min-width", "80px")  // 1. Force la largeur minimale égale à la largeur
-            .set("padding", "0")       // 2. Supprime l'espace interne réservé au texte
-            .set("flex-shrink", "0")   // 3. Empêche le layout d'écraser le bouton
-            .set("border-radius", "50%");
+        // On utilise un Div au lieu d'un Button pour un contrôle total
+        Div avatarContainer = new Div(icon);
+        
+        avatarContainer.getStyle()
+            // --- DIMENSIONS & FORME ---
+            .set("width", "90px")
+            .set("height", "90px")
+            .set("border-radius", "50%")
+            
+            // --- CENTRAGE PARFAIT (Flexbox sans interférence) ---
+            .set("display", "flex")
+            .set("align-items", "center")
+            .set("justify-content", "center")
+            
+            // --- INTERACTIVITÉ ---
+            .set("cursor", "pointer")  // La main au survol
+            .set("user-select", "none") // Empêche de sélectionner l'icône comme du texte
+            .set("box-sizing", "border-box") // Important pour que la bordure ne change pas la taille
+            
+            // --- ESTHÉTIQUE ---
+            .set("border", "3px solid transparent")
+            .set("transition", "all 0.2s ease-in-out");
 
-        // Style par défaut (USER sélectionné)
-        if (avatarName.equals(selectedAvatar)) {
-            button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        } else {
-            button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        }
+        // Rendre le Div cliquable
+        avatarContainer.addClickListener(e -> selectAvatar(avatarName));
 
-        button.addClickListener(e -> selectAvatar(avatarName));
-
-        return button;
+        return avatarContainer;
     }
 
     private void selectAvatar(String avatarName) {
-        selectedAvatar = avatarName;
+        this.selectedAvatar = avatarName;
+        updateVisualSelection();
+    }
 
-        // Mettre à jour les styles de tous les boutons (simplifié avec la Map)
-        avatarButtons.forEach((name, button) -> {
-            button.getThemeNames().clear();
-            if (name.equals(selectedAvatar)) {
-                button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    /**
+     * Met à jour le style de tous les boutons en fonction de la sélection actuelle.
+     * Cette méthode centralise la logique visuelle.
+     */
+    private void updateVisualSelection() {
+        avatarButtons.forEach((name, div) -> {
+            boolean isSelected = name.equals(selectedAvatar);
+            
+            // On modifie directement le style du Div
+            if (isSelected) {
+                div.getStyle()
+                    .set("background-color", "var(--lumo-primary-color-10pct)")
+                    .set("color", "var(--lumo-primary-color)")
+                    .set("border-color", "var(--lumo-primary-color)")
+                    .set("transform", "scale(1.1)")
+                    .set("box-shadow", "0 4px 8px rgba(0,0,0,0.1)"); // Légère ombre portée
             } else {
-                button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+                div.getStyle()
+                    .set("background-color", "var(--lumo-contrast-5pct)")
+                    .set("color", "var(--lumo-secondary-text-color)")
+                    .set("border-color", "transparent")
+                    .set("transform", "scale(1)")
+                    .set("box-shadow", "none");
             }
         });
     }
@@ -123,13 +143,12 @@ public class AvatarSelectionDialog extends Dialog {
         }
         close();
     }
-
-    /**
-     * Définit l'avatar actuellement sélectionné.
-     *
-     * @param avatar Nom de l'avatar (USER, MALE, FEMALE)
-     */
+    
     public void setCurrentAvatar(String avatar) {
         this.selectedAvatar = avatar != null ? avatar : "USER";
+        // Si le dialogue est déjà ouvert, on met à jour visuellement
+        if (avatarButtons.size() > 0) {
+            updateVisualSelection();
+        }
     }
 }
