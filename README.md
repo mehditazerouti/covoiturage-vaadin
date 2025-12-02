@@ -156,12 +156,26 @@ src/main/java/com/example/covoiturage_vaadin/
 │   ├── BookingStatus.java     # Enum (PENDING, CONFIRMED, CANCELLED)
 │   └── AllowedStudentCode.java # Whitelist codes étudiants
 ├── application/
+│   ├── dto/                   # 🆕 Data Transfer Objects (DTO)
+│   │   ├── student/
+│   │   │   ├── StudentDTO.java        # Affichage (SANS password)
+│   │   │   ├── StudentListDTO.java    # Version minimale (liste)
+│   │   │   └── StudentCreateDTO.java  # Création (AVEC password)
+│   │   ├── trip/
+│   │   │   ├── TripDTO.java           # Affichage (driver = StudentListDTO)
+│   │   │   └── TripCreateDTO.java     # Création
+│   │   ├── booking/
+│   │   │   └── BookingDTO.java        # Affichage (trip + student)
+│   │   └── mapper/
+│   │       ├── StudentMapper.java     # Entity ↔ DTO conversions
+│   │       ├── TripMapper.java        # Entity ↔ DTO conversions
+│   │       └── BookingMapper.java     # Entity ↔ DTO conversions
 │   ├── ports/                 # Interfaces (contrats)
 │   │   ├── IStudentRepositoryPort.java
 │   │   ├── ITripRepositoryPort.java
 │   │   ├── IBookingRepositoryPort.java
 │   │   └── IAllowedStudentCodeRepositoryPort.java
-│   └── services/              # Services métier (cas d'usage)
+│   └── services/              # Services métier (retournent des DTOs)
 │       ├── StudentService.java
 │       ├── TripService.java
 │       ├── BookingService.java
@@ -208,7 +222,7 @@ src/main/java/com/example/covoiturage_vaadin/
 | `/admin/create-student` | AdminStudentCreationView | Admin | Créer un étudiant manuellement |
 | `/admin/whitelist` | AdminWhitelistView | Admin | Gérer les codes étudiants autorisés |
 | `/admin/pending-students` | PendingStudentsView | Admin | Valider/rejeter les étudiants en attente |
-| `/students` | StudentView | Admin | Annuaire des étudiants |
+| `/admin/students` | AdminStudentView | Admin | Annuaire des étudiants |
 
 ## Base de données
 
@@ -245,6 +259,31 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 ```
 
 ## Historique des développements
+
+### Migration complète vers l'architecture DTO (02/12/2025) ✅
+- **Implémenté** : Migration COMPLÈTE de l'application vers l'architecture DTO
+- **Objectifs** :
+  - Séparer les entités JPA (domaine) des objets de présentation (DTOs)
+  - Améliorer la sécurité en n'exposant JAMAIS le password
+  - Préparer l'architecture pour LAZY loading futur
+  - Éviter les références circulaires dans les relations
+- **Fichiers créés** (9 nouveaux) :
+  - **DTOs** (6) : StudentDTO, StudentListDTO, StudentCreateDTO, TripDTO, TripCreateDTO, BookingDTO
+  - **Mappers** (3) : StudentMapper, TripMapper, BookingMapper (Spring @Component)
+- **Fichiers modifiés** (14) :
+  - **Services** (4) : StudentService, TripService, BookingService, AuthenticationService → retournent exclusivement des DTOs
+  - **Vues** (7) : TripSearchView, MyBookingsView, AdminStudentView, RegisterView, PendingStudentsView (Grid<Entity> → Grid<DTO>)
+  - **Composants** (3) : TripEditDialog, TripBookingDialog, BookingCancelDialog (Entity → DTO en paramètres)
+- **Architecture finale** :
+  - **Couche Domaine** : Entités JPA (Student, Trip, Booking) avec relations EAGER
+  - **Couche Application** : Services retournent DTOs, Mappers convertissent Entity ↔ DTO
+  - **Couche Présentation** : Vues manipulent Grid<DTO>, composants utilisent DTOs
+- **Avantages obtenus** :
+  - 🔒 **Sécurité maximale** : StudentDTO ne contient PAS le password
+  - ⚡ **Performance** : TripDTO contient StudentListDTO (pas l'entité complète) → prêt pour LAZY loading
+  - 🛡️ **Encapsulation** : Les vues ne dépendent plus des entités JPA
+  - 🔄 **Évite les références circulaires** : BookingDTO → TripDTO → StudentListDTO (structure claire)
+  - 🎯 **Flexibilité** : DTOs différents selon le contexte (affichage complet, liste, création)
 
 ### Composants réutilisables + Filtres avancés + Badges (28/11/2025 15:40) ✅
 - **Implémenté** : Refactorisation majeure pour améliorer la maintenabilité et l'UX
@@ -323,21 +362,29 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 
 ## 🎯 Prochaines étapes prioritaires
 
-### 1. Vue Profil utilisateur (En cours)
+### 1. ✅ Migration complète vers l'architecture DTO (TERMINÉ 02/12/2025)
+- **✅ DTOs créés** : 6 DTOs (StudentDTO, StudentListDTO, StudentCreateDTO, TripDTO, TripCreateDTO, BookingDTO)
+- **✅ Mappers créés** : 3 Mappers Spring Component (StudentMapper, TripMapper, BookingMapper)
+- **✅ Services adaptés** : Tous les services retournent exclusivement des DTOs
+- **✅ Vues adaptées** : Toutes les vues utilisent Grid<DTO> au lieu de Grid<Entity>
+- **✅ Sécurité maximale** : Le password n'est JAMAIS exposé (StudentDTO ne contient pas le champ password)
+- **✅ Architecture propre** : Séparation claire entre Domaine (Entités JPA) et Présentation (DTOs) 
+
+### 2. Vue Profil utilisateur (En cours)
 - **Changement d'avatar** : Sélection parmi une liste prédéfinie d'avatars
 - **Changement de mot de passe** : Formulaire sécurisé avec confirmation
 - **Modification nom/email** : Édition des informations personnelles
 - **Code étudiant** : Affichage uniquement (non modifiable)
 - **Statistiques** : Nombre de trajets proposés, réservations effectuées
 
-### 2. Design System Neobrutalism
+### 3. Design System Neobrutalism
 - **Couleurs vives** : Jaune (#FFFF00), Cyan (#00FFFF), Magenta (#FF00FF)
 - **Bordures épaisses** : 3-5px en noir
 - **Ombres décalées** : `box-shadow: 5px 5px 0px black`
 - **Typographie** : Bold et uppercase
 - **Pas de border-radius** : Angles à 90°
 
-### 3. Validation JSR-303
+### 4. Validation JSR-303
 - **Bean Validation** sur les entités et DTOs
 - Validation automatique côté serveur
 - Messages d'erreur personnalisés en français
@@ -346,15 +393,18 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 ## Améliorations futures
 
 ### 🎨 Architecture & Qualité du code
-- **DTO (Data Transfer Objects)** :
-  - Créer des DTOs pour séparer les entités JPA de l'API
-  - Exemples : `TripDTO`, `BookingDTO`, `StudentDTO`
-  - Mapper avec MapStruct ou ModelMapper
-  - Avantages : Sécurité (ne pas exposer les entités), Flexibilité (différentes représentations)
+- ✅ **DTO (Data Transfer Objects)** : IMPLÉMENTÉ (02/12/2025)
+  - ✅ 6 DTOs créés pour séparer les entités JPA de la présentation
+  - ✅ 3 Mappers Spring Component pour conversions Entity ↔ DTO
+  - ✅ Tous les services retournent des DTOs
+  - ✅ Toutes les vues utilisent Grid<DTO>
+  - ✅ Sécurité : StudentDTO ne contient PAS le password
+  - ✅ Performance : Architecture prête pour LAZY loading
 
 - **Pattern DAO/Repository amélioré** :
-  - Ajouter des spécifications JPA pour requêtes complexes
+  - Ajouter des spécifications JPA pour requêtes complexes (JPA Criteria API)
   - Créer des query objects réutilisables
+  - Ajouter QueryDSL pour des requêtes type-safe
 
 ### 🎨 Interface utilisateur
 

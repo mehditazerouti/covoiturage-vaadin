@@ -1,12 +1,15 @@
 package com.example.covoiturage_vaadin.application.services;
 
+import com.example.covoiturage_vaadin.application.dto.trip.TripDTO;
+import com.example.covoiturage_vaadin.application.dto.mapper.TripMapper;
 import com.example.covoiturage_vaadin.application.ports.ITripRepositoryPort;
 import com.example.covoiturage_vaadin.domain.model.Trip;
 import com.example.covoiturage_vaadin.domain.model.Student;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // <-- NOUVEL IMPORT
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @Service
 public class TripService {
@@ -14,17 +17,25 @@ public class TripService {
     private final ITripRepositoryPort tripRepository;
     private final StudentService studentService;
     private final SecurityContextService securityContext;
+    private final TripMapper tripMapper;
 
-    public TripService(ITripRepositoryPort tripRepository, StudentService studentService, SecurityContextService securityContext) {
+    public TripService(ITripRepositoryPort tripRepository,
+                      StudentService studentService,
+                      SecurityContextService securityContext,
+                      TripMapper tripMapper) {
         this.tripRepository = tripRepository;
         this.studentService = studentService;
         this.securityContext = securityContext;
+        this.tripMapper = tripMapper;
     }
 
-    // Cas d'usage : Proposer un trajet
-    // Le conducteur est automatiquement assigné depuis le SecurityContext
+    /**
+     * Cas d'usage : Proposer un trajet.
+     * Le conducteur est automatiquement assigné depuis le SecurityContext.
+     * @return TripDTO du trajet créé
+     */
     @Transactional
-    public Trip proposeTrip(String departure, String destination, LocalDateTime time, int seats, boolean isRegular) {
+    public TripDTO proposeTrip(String departure, String destination, LocalDateTime time, int seats, boolean isRegular) {
         // 1. Récupérer le conducteur depuis SecurityContext
         String username = securityContext.getCurrentUsername()
             .orElseThrow(() -> new IllegalStateException("Aucun utilisateur authentifié"));
@@ -43,25 +54,40 @@ public class TripService {
         newTrip.setRegular(isRegular);
 
         // 3. Persister via le Port
-        return tripRepository.save(newTrip);
+        Trip savedTrip = tripRepository.save(newTrip);
+
+        // 4. Convertir en DTO avant de retourner
+        return tripMapper.toDTO(savedTrip);
     }
     
-    // Cas d'usage : Rechercher un trajet
+    /**
+     * Cas d'usage : Rechercher un trajet par destination.
+     * @return Liste de TripDTO
+     */
     @Transactional(readOnly = true)
-    public List<Trip> searchTrips(String destination) {
-        // Logique de recherche (peut inclure des règles du domaine/rules ici)
-        return tripRepository.findTripsByDestination(destination);
+    public List<TripDTO> searchTrips(String destination) {
+        return tripRepository.findTripsByDestination(destination).stream()
+                .map(tripMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Obtenir tous les trajets pour l'affichage initial
+    /**
+     * Obtenir tous les trajets pour l'affichage initial.
+     * @return Liste de TripDTO
+     */
     @Transactional(readOnly = true)
-    public List<Trip> findAllTrips() {
-        return tripRepository.findAll();
+    public List<TripDTO> findAllTrips() {
+        return tripRepository.findAll().stream()
+                .map(tripMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Cas d'usage : Recherche avancée avec filtres multiples
+    /**
+     * Cas d'usage : Recherche avancée avec filtres multiples.
+     * @return Liste de TripDTO filtrée
+     */
     @Transactional(readOnly = true)
-    public List<Trip> searchTripsAdvanced(String destination, LocalDateTime minDate, Integer minSeats, Boolean isRegular) {
+    public List<TripDTO> searchTripsAdvanced(String destination, LocalDateTime minDate, Integer minSeats, Boolean isRegular) {
         List<Trip> trips = tripRepository.findAll();
 
         // Filtre par destination (insensible à la casse)
@@ -93,12 +119,18 @@ public class TripService {
                 .toList();
         }
 
-        return trips;
+        // Convertir en DTO avant de retourner
+        return trips.stream()
+                .map(tripMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Cas d'usage : Mettre à jour un trajet existant
+    /**
+     * Cas d'usage : Mettre à jour un trajet existant.
+     * @return TripDTO du trajet mis à jour
+     */
     @Transactional
-    public Trip updateTrip(Long tripId, String departure, String destination, LocalDateTime time, int totalSeats) {
+    public TripDTO updateTrip(Long tripId, String departure, String destination, LocalDateTime time, int totalSeats) {
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new IllegalArgumentException("Trajet non trouvé"));
 
@@ -133,7 +165,10 @@ public class TripService {
         trip.setTotalSeats(totalSeats);
         trip.setAvailableSeats(totalSeats - bookedSeats);
 
-        return tripRepository.save(trip);
+        Trip updatedTrip = tripRepository.save(trip);
+
+        // Convertir en DTO avant de retourner
+        return tripMapper.toDTO(updatedTrip);
     }
 
     // Cas d'usage : Supprimer un trajet

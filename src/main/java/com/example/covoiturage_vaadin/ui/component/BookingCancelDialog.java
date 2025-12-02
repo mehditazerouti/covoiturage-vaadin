@@ -1,7 +1,7 @@
 package com.example.covoiturage_vaadin.ui.component;
 
+import com.example.covoiturage_vaadin.application.dto.booking.BookingDTO;
 import com.example.covoiturage_vaadin.application.services.BookingService;
-import com.example.covoiturage_vaadin.domain.model.Booking;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -16,7 +16,7 @@ public class BookingCancelDialog extends ConfirmDialog {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    public BookingCancelDialog(Booking booking, BookingService bookingService, Runnable onSuccess) {
+    public BookingCancelDialog(BookingDTO booking, BookingService bookingService, Runnable onSuccess) {
         setHeader("Annuler la réservation");
 
         // Message avec détails de la réservation

@@ -1,7 +1,7 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.StudentService;
-import com.example.covoiturage_vaadin.domain.model.Student;
 import com.example.covoiturage_vaadin.ui.component.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
 import com.vaadin.flow.component.avatar.Avatar;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class AdminStudentView extends VerticalLayout {
 
     private final StudentService studentService;
-    private final Grid<Student> grid = new Grid<>(Student.class, false); // false = pas de colonnes auto
+    private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false); // false = pas de colonnes auto
 
     public AdminStudentView(StudentService studentService) {
         this.studentService = studentService;
@@ -74,7 +74,7 @@ public class AdminStudentView extends VerticalLayout {
         })).setHeader("Étudiant").setAutoWidth(true);
 
         // Colonne Code Étudiant
-        grid.addColumn(Student::getStudentCode).setHeader("Code Étudiant");
+        grid.addColumn(StudentDTO::getStudentCode).setHeader("Code Étudiant");
 
         // --- MODIFICATION ICI : VÉRIFICATION DU RÔLE ADMIN ---
         
@@ -102,7 +102,7 @@ public class AdminStudentView extends VerticalLayout {
                         ConfirmDeleteDialog dialog = new ConfirmDeleteDialog(
                             "Supprimer l'étudiant",
                             "Voulez-vous vraiment supprimer l'étudiant \"" + student.getName() + "\" ?",
-                            () -> studentService.deleteStudent(student),
+                            () -> studentService.deleteStudentById(student.getId()),
                             this::refreshGrid
                         );
                         dialog.open();
@@ -115,9 +115,9 @@ public class AdminStudentView extends VerticalLayout {
 
     private void refreshGrid() {
         // Filtrer pour n'afficher que les étudiants approuvés (approved=true) et non-admins
-        List<Student> students = studentService.getAllStudents().stream()
+        List<StudentDTO> students = studentService.getAllStudents().stream()
                 .filter(s -> !"ROLE_ADMIN".equals(s.getRole())) // Exclure les admins
-                .filter(Student::isApproved) // N'afficher que les étudiants approuvés
+                .filter(StudentDTO::isApproved) // N'afficher que les étudiants approuvés
                 .collect(Collectors.toList());
 
         grid.setItems(students);

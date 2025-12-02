@@ -49,7 +49,7 @@ public class DataInitializer implements ApplicationRunner {
 
             studentService.saveStudent(admin);
 
-            System.out.println("✅ Compte administrateur créé : admin / admin123");
+            System.out.println("Compte administrateur créé : admin / admin123");
         }
 
         // Ajouter des codes étudiants pré-autorisés pour les tests
@@ -59,7 +59,7 @@ public class DataInitializer implements ApplicationRunner {
             for (String code : defaultCodes) {
                 try {
                     codeService.addAllowedCode(code, "SYSTEM");
-                    System.out.println("✅ Code étudiant whitelisté : " + code);
+                    System.out.println("Code étudiant whitelisté : " + code);
                 } catch (IllegalArgumentException e) {
                     // Code déjà existant, on ignore
                 }

@@ -1,5 +1,7 @@
 package com.example.covoiturage_vaadin.application.services;
 
+import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
+import com.example.covoiturage_vaadin.application.dto.mapper.StudentMapper;
 import com.example.covoiturage_vaadin.application.ports.IStudentRepositoryPort;
 import com.example.covoiturage_vaadin.domain.model.Student;
 
@@ -10,29 +12,58 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class StudentService {
     private final IStudentRepositoryPort studentRepository;
     private final PasswordEncoder passwordEncoder;
     private final AllowedStudentCodeService codeService;
+    private final StudentMapper studentMapper;
 
     public StudentService(IStudentRepositoryPort studentRepository,
                          PasswordEncoder passwordEncoder,
-                         AllowedStudentCodeService codeService) {
+                         AllowedStudentCodeService codeService,
+                         StudentMapper studentMapper) {
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
         this.codeService = codeService;
+        this.studentMapper = studentMapper;
     }
 
+    // ========== MÉTHODES PUBLIQUES RETOURNANT DES DTO ==========
+
+    /**
+     * Récupère un étudiant par son ID (version DTO, sans password).
+     * Utilisé par les vues pour afficher les détails d'un étudiant.
+     */
     @Transactional(readOnly = true)
-    public Optional<Student> getStudentById(Long id) {
+    public Optional<StudentDTO> getStudentById(Long id) {
+        return studentRepository.findById(id)
+                .map(studentMapper::toDTO);
+    }
+
+    /**
+     * Récupère tous les étudiants (version DTO, sans password).
+     * Utilisé par AdminStudentView pour afficher la liste.
+     */
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getAllStudents() {
+        return studentRepository.findAll().stream()
+                .map(studentMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ========== MÉTHODES INTERNES RETOURNANT DES ENTITÉS ==========
+    // Ces méthodes sont utilisées par Spring Security et d'autres services internes
+
+    /**
+     * Récupère l'entité Student complète par ID (usage interne uniquement).
+     * ⚠️ Cette méthode expose le password hashé, à utiliser avec précaution.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Student> getStudentEntityById(Long id) {
         return studentRepository.findById(id);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Student> getAllStudents() {
-        return studentRepository.findAll();
     }
 
     @Transactional
@@ -57,6 +88,17 @@ public class StudentService {
         }
 
         studentRepository.delete(student);
+    }
+
+    /**
+     * Supprime un étudiant par son ID (version publique pour les vues).
+     * @param id L'ID de l'étudiant à supprimer
+     */
+    @Transactional
+    public void deleteStudentById(Long id) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Étudiant non trouvé"));
+        deleteStudent(student);
     }
 
     // Nouvelles méthodes pour l'authentification
@@ -87,18 +129,19 @@ public class StudentService {
     }
 
     /**
-     * Classe pour retourner l'étudiant créé + le mot de passe en clair
+     * Classe pour retourner l'étudiant créé (DTO, sans password hashé) + le mot de passe en clair.
+     * Utilisé uniquement lors de la création par admin pour afficher le mot de passe généré.
      */
     public static class StudentCreationResult {
-        private final Student student;
+        private final StudentDTO student;
         private final String plainPassword;
 
-        public StudentCreationResult(Student student, String plainPassword) {
+        public StudentCreationResult(StudentDTO student, String plainPassword) {
             this.student = student;
             this.plainPassword = plainPassword;
         }
 
-        public Student getStudent() {
+        public StudentDTO getStudent() {
             return student;
         }
 
@@ -150,7 +193,10 @@ public class StudentService {
             codeService.markCodeAsUsed(studentCode, savedStudent);
         }
 
-        return new StudentCreationResult(savedStudent, plainPassword);
+        // Convertir en DTO avant de retourner (sécurité : pas de password)
+        StudentDTO studentDTO = studentMapper.toDTO(savedStudent);
+
+        return new StudentCreationResult(studentDTO, plainPassword);
     }
 
     /**

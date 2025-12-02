@@ -16,18 +16,33 @@
 
 2. **Application** (`application/`)
    - **Ports** : `IStudentRepositoryPort`, `ITripRepositoryPort`, `IBookingRepositoryPort`, `IAllowedStudentCodeRepositoryPort` (interfaces)
+   - **DTOs** (`application/dto/`) :
+     - **Student** :
+       - `StudentDTO` : Affichage complet **sans password** (sécurité maximale)
+       - `StudentListDTO` : Version minimale (id, name, email) pour listes et références
+       - `StudentCreateDTO` : Création avec password (hashé avant conversion)
+     - **Trip** :
+       - `TripDTO` : Affichage avec driver en StudentListDTO (évite EAGER loading)
+       - `TripCreateDTO` : Création (driver auto-assigné)
+     - **Booking** :
+       - `BookingDTO` : Affichage avec TripDTO et StudentListDTO (évite références circulaires)
+   - **Mappers** (`application/dto/mapper/`) :
+     - `StudentMapper` : toDTO(), toListDTO(), toEntity(), updateEntity()
+     - `TripMapper` : Conversions Entity ↔ DTO avec gestion du driver
+     - `BookingMapper` : Conversions avec relations imbriquées (Booking → Trip → Student)
    - **Services** :
-     - `StudentService` : Gestion étudiants
-     - `TripService` : Gestion trajets
+     - `StudentService` : Gestion étudiants (**retourne des DTOs**)
+     - `TripService` : Gestion trajets (**retourne des DTOs**)
        - `proposeTrip()` : Auto-assign driver via SecurityContext
        - `updateTrip()`, `deleteTrip()`, `canEditTrip()` : Édition avec permissions
        - `searchTrips()` : Recherche simple par destination
        - `searchTripsAdvanced()` : Recherche avancée avec filtres multiples (destination, date min, places min, type)
-     - `BookingService` : Gestion réservations (create, cancel, getMyBookings, getBookingsByTrip)
+     - `BookingService` : Gestion réservations (**retourne des DTOs**)
      - `SecurityContextService` : Abstraction du SecurityContext
      - `AllowedStudentCodeService` : Gestion de la whitelist des codes étudiants
      - `AuthenticationService` : Gestion de l'inscription et approbation des étudiants
    - Services annotés avec `@Transactional(readOnly = true)` pour lectures, `@Transactional` pour écritures
+   - ⚠️ **Les services retournent exclusivement des DTOs, jamais des entités JPA**
 
 3. **Infrastructure** (`infrastructure/`)
    - **Adapters** : `StudentRepositoryAdapter`, `TripRepositoryAdapter`, `BookingRepositoryAdapter`, `AllowedStudentCodeRepositoryAdapter` (implémentent les ports)
@@ -45,9 +60,9 @@
      - Section administration (visible uniquement pour ROLE_ADMIN)
    - **Components réutilisables** :
      - `LogoutButton` (✅ corrigé : capture UI avant logout)
-     - `TripEditDialog` (✅ Dialog édition/suppression trajet avec validation)
-     - `BookingCancelDialog` (✅ Dialog confirmation annulation réservation avec détails)
-     - `TripBookingDialog` (✅ Dialog confirmation réservation avec récapitulatif)
+     - `TripEditDialog` (✅ Dialog édition/suppression trajet avec validation - **utilise TripDTO**)
+     - `BookingCancelDialog` (✅ Dialog confirmation annulation réservation - **utilise BookingDTO**)
+     - `TripBookingDialog` (✅ Dialog confirmation réservation - **utilise TripDTO**)
      - `WhitelistCodeDialog` (✅ Dialog formulaire ajout code étudiant avec validation)
      - `StatusBadge` (✅ Badge coloré pour statut réservation : En attente/Confirmée/Annulée)
      - `TripTypeBadge` (✅ Badge pour type de trajet : Régulier/Ponctuel)
@@ -56,11 +71,11 @@
      - `LoginView` (`/login`) : Authentification [@AnonymousAllowed]
        - Lien vers RegisterView
        - Traduction française du formulaire
-     - `RegisterView` (`/register`) : Inscription publique [@AnonymousAllowed]
+     - `RegisterView` (`/register`) : Inscription publique [@AnonymousAllowed] - **utilise StudentDTO**
        - Si code whitelisté → compte activé immédiatement
        - Si code non whitelisté → compte en attente de validation admin
    - **Views utilisateur** [@PermitAll] :
-     - `TripSearchView` (`/`) : Recherche + Réservation + Modification trajets
+     - `TripSearchView` (`/`) : Recherche + Réservation + Modification trajets - **utilise Grid<TripDTO>**
        - **Filtres avancés** : destination, date minimum, places minimum, type de trajet (Tous/Réguliers/Ponctuels)
        - Recherche en temps réel (ValueChangeListener sur tous les filtres)
        - Badge "Régulier" (vert) / "Ponctuel" (gris) pour chaque trajet
@@ -71,7 +86,7 @@
      - `TripCreationView` (`/proposer-trajet`) : Formulaire création trajet
        - ⚠️ Pas de sélection conducteur : **auto-assigné** depuis SecurityContext
        - Checkbox pour trajets réguliers
-     - `MyBookingsView` (`/mes-reservations`) : Mes réservations
+     - `MyBookingsView` (`/mes-reservations`) : Mes réservations - **utilise Grid<BookingDTO>**
        - Grid : Trajet, Date/Heure, Conducteur, Places dispo, Type, Réservé le, Statut, Actions
        - Badge coloré par statut : Confirmée (vert), Annulée (rouge), En attente (gris)
        - Badge type de trajet : Régulier (vert) / Ponctuel (gris)
@@ -79,7 +94,7 @@
        - Scroll infini pour navigation fluide
        - Bouton "Annuler" pour réservations actives uniquement
    - **Views admin** [@RolesAllowed("ADMIN")] :
-     - `AdminStudentView` (`/admin/students`) : Annuaire étudiants
+     - `AdminStudentView` (`/admin/students`) : Annuaire étudiants - **utilise Grid<StudentDTO>**
        - Colonne "Actions" (suppression) visible **uniquement pour ROLE_ADMIN**
        - Dialog de confirmation avant suppression
        - Protection : impossible de se supprimer soi-même
@@ -89,9 +104,10 @@
      - `AdminWhitelistView` (`/admin/whitelist`) : Gestion CRUD de la whitelist
        - Grid : code, utilisé, utilisé par, créé par, date, actions
        - Protection : impossible de supprimer un code utilisé
-     - `PendingStudentsView` (`/admin/pending-students`) : Validation des étudiants en attente
+     - `PendingStudentsView` (`/admin/pending-students`) : Validation des étudiants en attente - **utilise Grid<StudentDTO>**
        - Affiche les étudiants avec approved=false
        - Actions : Approuver (whitelist + activer) ou Rejeter (supprimer)
+   - ⚠️ **Les vues manipulent exclusivement des DTOs, jamais des entités JPA**
 
 ## Entités JPA
 
@@ -143,19 +159,38 @@ private Student student;
    - ✅ Services → Ports (interfaces)
    - ✅ Adapters → JPA Repositories
 
-2. **Transactions**
+2. **Architecture DTO (OBLIGATOIRE depuis migration 02/12/2025)**
+   - ✅ **Services retournent EXCLUSIVEMENT des DTOs** (jamais des entités JPA)
+   - ✅ **Vues manipulent EXCLUSIVEMENT des DTOs** (Grid<TripDTO>, pas Grid<Trip>)
+   - ✅ **Utiliser les Mappers** pour conversions Entity ↔ DTO
+   - ❌ **JAMAIS** exposer une entité JPA dans un endpoint ou une vue
+   - **Avantages** :
+     - Sécurité : Le password n'est jamais exposé (StudentDTO ne contient pas le champ password)
+     - Performance : Évite le EAGER loading en utilisant des DTOs imbriqués (ex: TripDTO contient StudentListDTO)
+     - Flexibilité : Différents DTOs pour différents contextes (StudentDTO, StudentListDTO, StudentCreateDTO)
+     - Évite les références circulaires : BookingDTO → TripDTO → StudentListDTO
+   - **Mappers disponibles** :
+     - `StudentMapper.toDTO(Student)` : Entité → StudentDTO (sans password)
+     - `StudentMapper.toListDTO(Student)` : Entité → StudentListDTO (version minimale)
+     - `StudentMapper.toEntity(StudentCreateDTO, hashedPassword)` : DTO → Entité
+     - `TripMapper.toDTO(Trip)` : Entité → TripDTO
+     - `BookingMapper.toDTO(Booking)` : Entité → BookingDTO
+
+3. **Transactions**
    - Lectures : `@Transactional(readOnly = true)`
    - Écritures : `@Transactional`
 
-3. **Vues Vaadin**
+4. **Vues Vaadin**
    - Injectent les Services (pas les repositories)
    - Routes : `@Route("chemin")` et `@PageTitle("Titre")`
    - Annotations sécurité : `@PermitAll`, `@AnonymousAllowed`, `@RolesAllowed("ADMIN")`
+   - ⚠️ **Utilisent Grid<DTO>** (ex: Grid<TripDTO>, Grid<StudentDTO>)
 
-4. **Sécurité**
+5. **Sécurité**
    - Toujours utiliser `SecurityContextService` pour accéder au contexte
    - Ne jamais manipuler directement `SecurityContextHolder` dans les services métier
    - `TripService.proposeTrip()` récupère automatiquement le conducteur connecté
+   - **Le password est TOUJOURS hashé avec BCrypt AVANT la persistance**
 
 ## Authentification & Autorisation
 
@@ -301,6 +336,49 @@ Code: ADMIN001
 - Maven
 
 ## Historique des développements
+
+### Migration complète vers l'architecture DTO (✅ 02/12/2025)
+- **Implémenté** : Migration COMPLÈTE de l'application vers l'architecture DTO
+- **6 DTOs créés** :
+  - `StudentDTO` : Affichage complet **sans password** (sécurité maximale)
+  - `StudentListDTO` : Version minimale (id, name, email) pour listes et références
+  - `StudentCreateDTO` : Création avec password (hashé avant conversion)
+  - `TripDTO` : Affichage avec driver en StudentListDTO (évite EAGER loading)
+  - `TripCreateDTO` : Création (driver auto-assigné)
+  - `BookingDTO` : Affichage avec TripDTO et StudentListDTO (évite références circulaires)
+- **3 Mappers créés** (@Component Spring) :
+  - `StudentMapper` : toDTO(), toListDTO(), toEntity(), updateEntity()
+  - `TripMapper` : Conversions Entity ↔ DTO avec gestion du driver
+  - `BookingMapper` : Conversions avec relations imbriquées (Booking → Trip → Student)
+- **4 Services modifiés** (retournent exclusivement des DTOs) :
+  - `StudentService` : getAllStudents() → List<StudentDTO>, getStudentById() → Optional<StudentDTO>, etc.
+  - `TripService` : proposeTrip() → TripDTO, searchTrips() → List<TripDTO>, etc.
+  - `BookingService` : createBooking() → BookingDTO, getMyBookings() → List<BookingDTO>, etc.
+  - `AuthenticationService` : registerStudent() → StudentDTO, + nouvelle méthode approveStudentById()
+- **7 Vues adaptées** (utilisent Grid<DTO>) :
+  - `TripSearchView` : Grid<Trip> → Grid<TripDTO>
+  - `MyBookingsView` : Grid<Booking> → Grid<BookingDTO>
+  - `AdminStudentView` : Grid<Student> → Grid<StudentDTO>
+  - `RegisterView` : Student → StudentDTO
+  - `PendingStudentsView` : Grid<Student> → Grid<StudentDTO>, méthodes refactorisées
+  - `TripCreationView` : Pas de modification nécessaire
+  - `AdminStudentCreationView` : Pas de modification nécessaire
+- **3 Composants adaptés** (utilisent DTOs en paramètres) :
+  - `TripEditDialog` : Trip → TripDTO
+  - `TripBookingDialog` : Trip → TripDTO
+  - `BookingCancelDialog` : Booking → BookingDTO
+- **Architecture finale** :
+  - **Domaine** : Entités JPA (Student, Trip, Booking) avec relations EAGER (nécessaire pour mapping)
+  - **Application** : Services retournent DTOs, Mappers pour conversions
+  - **Présentation** : Vues manipulent Grid<DTO>, composants utilisent DTOs
+- **Avantages obtenus** :
+  - 🔒 **Sécurité maximale** : Le password n'est JAMAIS exposé dans StudentDTO
+  - ⚡ **Performance** : Architecture prête pour LAZY loading (optimisation future)
+  - 🔄 **Séparation des couches** : Domaine ↔ Application ↔ Présentation
+  - 🎯 **Flexibilité** : DTOs différents selon contexte (création vs affichage vs liste)
+  - 🛡️ **Encapsulation** : Les vues ne manipulent plus directement les entités JPA
+  - 🧹 **Maintenabilité** : Changements d'entités n'impactent pas les vues
+- **Total** : 9 nouveaux fichiers créés, 14 fichiers modifiés, 23 fichiers touchés
 
 ### Composants réutilisables + Filtres avancés + Badges (✅ 28/11/2025 15:40)
 - **Implémenté** : Refactorisation majeure avec composants réutilisables

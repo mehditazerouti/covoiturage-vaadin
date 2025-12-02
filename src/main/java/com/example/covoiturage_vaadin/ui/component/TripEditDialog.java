@@ -1,7 +1,7 @@
 package com.example.covoiturage_vaadin.ui.component;
 
+import com.example.covoiturage_vaadin.application.dto.trip.TripDTO;
 import com.example.covoiturage_vaadin.application.services.TripService;
-import com.example.covoiturage_vaadin.domain.model.Trip;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
@@ -17,7 +17,7 @@ import com.vaadin.flow.component.textfield.TextField;
 public class TripEditDialog extends Dialog {
 
     private final TripService tripService;
-    private final Trip trip;
+    private final TripDTO trip;
     private final Runnable onSaveCallback;
 
     private final TextField departureField = new TextField("Point de départ");
@@ -25,7 +25,7 @@ public class TripEditDialog extends Dialog {
     private final DateTimePicker timePicker = new DateTimePicker("Date et heure du départ");
     private final IntegerField seatsField = new IntegerField("Nombre de places totales");
 
-    public TripEditDialog(TripService tripService, Trip trip, Runnable onSaveCallback) {
+    public TripEditDialog(TripService tripService, TripDTO trip, Runnable onSaveCallback) {
         this.tripService = tripService;
         this.trip = trip;
         this.onSaveCallback = onSaveCallback;

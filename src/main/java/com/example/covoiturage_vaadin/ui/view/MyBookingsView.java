@@ -1,7 +1,7 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.dto.booking.BookingDTO;
 import com.example.covoiturage_vaadin.application.services.BookingService;
-import com.example.covoiturage_vaadin.domain.model.Booking;
 import com.example.covoiturage_vaadin.domain.model.BookingStatus;
 import com.example.covoiturage_vaadin.ui.component.BookingCancelDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
@@ -26,7 +26,7 @@ import java.time.format.DateTimeFormatter;
 public class MyBookingsView extends VerticalLayout {
 
     private final BookingService bookingService;
-    private final Grid<Booking> grid = new Grid<>(Booking.class);
+    private final Grid<BookingDTO> grid = new Grid<>(BookingDTO.class);
 
     public MyBookingsView(BookingService bookingService) {
         this.bookingService = bookingService;

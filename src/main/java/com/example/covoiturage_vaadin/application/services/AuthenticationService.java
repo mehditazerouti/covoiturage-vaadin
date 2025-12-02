@@ -1,5 +1,7 @@
 package com.example.covoiturage_vaadin.application.services;
 
+import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
+import com.example.covoiturage_vaadin.application.dto.mapper.StudentMapper;
 import com.example.covoiturage_vaadin.domain.model.Student;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,13 +20,16 @@ public class AuthenticationService {
     private final StudentService studentService;
     private final AllowedStudentCodeService codeService;
     private final PasswordEncoder passwordEncoder;
+    private final StudentMapper studentMapper;
 
     public AuthenticationService(StudentService studentService,
                                 AllowedStudentCodeService codeService,
-                                PasswordEncoder passwordEncoder) {
+                                PasswordEncoder passwordEncoder,
+                                StudentMapper studentMapper) {
         this.studentService = studentService;
         this.codeService = codeService;
         this.passwordEncoder = passwordEncoder;
+        this.studentMapper = studentMapper;
     }
 
     /**
@@ -33,9 +38,11 @@ public class AuthenticationService {
      * Logique :
      * - Si le code est whitelisté → approved=true, enabled=true, marquer code comme utilisé
      * - Si le code n'est PAS whitelisté → approved=false, enabled=false (en attente validation admin)
+     *
+     * @return StudentDTO (sans password) de l'étudiant inscrit
      */
     @Transactional
-    public Student registerStudent(String studentCode, String name, String email, String password) {
+    public StudentDTO registerStudent(String studentCode, String name, String email, String password) {
         // Validations
         if (studentService.existsByStudentCode(studentCode)) {
             throw new IllegalArgumentException("Ce code étudiant est déjà utilisé");
@@ -80,7 +87,8 @@ public class AuthenticationService {
             codeService.markCodeAsUsed(studentCode, savedStudent);
         }
 
-        return savedStudent;
+        // Convertir en DTO avant de retourner (sécurité : pas de password)
+        return studentMapper.toDTO(savedStudent);
     }
 
     /**
@@ -105,5 +113,21 @@ public class AuthenticationService {
         student.setApproved(true);
         student.setEnabled(true);
         studentService.saveStudent(student);
+    }
+
+    /**
+     * Approuver un étudiant par son ID (version publique pour les vues).
+     * @param studentId L'ID de l'étudiant à approuver
+     * @param adminUsername Le nom d'utilisateur de l'admin qui approuve
+     */
+    @Transactional
+    public void approveStudentById(Long studentId, String adminUsername) {
+        Student student = studentService.getStudentByUsername(adminUsername)
+                .orElseThrow(() -> new IllegalStateException("Admin non trouvé"));
+
+        Student studentToApprove = studentService.getStudentEntityById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Étudiant non trouvé"));
+
+        approveStudent(studentToApprove, adminUsername);
     }
 }

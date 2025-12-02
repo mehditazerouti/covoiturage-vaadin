@@ -1,7 +1,7 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.AuthenticationService;
-import com.example.covoiturage_vaadin.domain.model.Student;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -108,7 +108,7 @@ public class RegisterView extends VerticalLayout {
         }
 
         try {
-            Student student = authService.registerStudent(
+            StudentDTO student = authService.registerStudent(
                 studentCodeField.getValue().trim(),
                 nameField.getValue().trim(),
                 emailField.getValue().trim(),

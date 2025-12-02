@@ -1,9 +1,9 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.AuthenticationService;
 import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.application.services.StudentService;
-import com.example.covoiturage_vaadin.domain.model.Student;
 import com.example.covoiturage_vaadin.ui.component.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -37,7 +37,7 @@ public class PendingStudentsView extends VerticalLayout {
     private final AuthenticationService authService;
     private final SecurityContextService securityContext;
 
-    private final Grid<Student> grid = new Grid<>(Student.class, false);
+    private final Grid<StudentDTO> grid = new Grid<>(StudentDTO.class, false);
 
     public PendingStudentsView(StudentService studentService,
                               AuthenticationService authService,
@@ -68,18 +68,18 @@ public class PendingStudentsView extends VerticalLayout {
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
         // Colonne Nom
-        grid.addColumn(Student::getName)
+        grid.addColumn(StudentDTO::getName)
             .setHeader("Nom")
             .setSortable(true)
             .setAutoWidth(true);
 
         // Colonne Email
-        grid.addColumn(Student::getEmail)
+        grid.addColumn(StudentDTO::getEmail)
             .setHeader("Email")
             .setAutoWidth(true);
 
         // Colonne Code étudiant
-        grid.addColumn(Student::getStudentCode)
+        grid.addColumn(StudentDTO::getStudentCode)
             .setHeader("Code étudiant")
             .setAutoWidth(true);
 
@@ -111,7 +111,7 @@ public class PendingStudentsView extends VerticalLayout {
         }).setHeader("Actions").setAutoWidth(true);
     }
 
-    private void confirmApprove(Student student) {
+    private void confirmApprove(StudentDTO student) {
         ConfirmDialog confirmDialog = new ConfirmDialog();
         confirmDialog.setHeader("Approuver l'étudiant");
         confirmDialog.setText(
@@ -131,7 +131,7 @@ public class PendingStudentsView extends VerticalLayout {
         confirmDialog.addConfirmListener(event -> {
             try {
                 String adminUsername = securityContext.getCurrentUsername().orElse("UNKNOWN");
-                authService.approveStudent(student, adminUsername);
+                authService.approveStudentById(student.getId(), adminUsername);
 
                 Notification.show(
                     "✅ Étudiant approuvé avec succès ! Il peut maintenant se connecter.",
@@ -149,7 +149,7 @@ public class PendingStudentsView extends VerticalLayout {
         confirmDialog.open();
     }
 
-    private void confirmReject(Student student) {
+    private void confirmReject(StudentDTO student) {
         ConfirmDialog confirmDialog = new ConfirmDialog();
         confirmDialog.setHeader("Rejeter l'étudiant");
         confirmDialog.setText(
@@ -168,7 +168,7 @@ public class PendingStudentsView extends VerticalLayout {
 
         confirmDialog.addConfirmListener(event -> {
             try {
-                studentService.deleteStudent(student);
+                studentService.deleteStudentById(student.getId());
 
                 Notification.show(
                     "✅ Étudiant rejeté et supprimé.",
@@ -188,7 +188,7 @@ public class PendingStudentsView extends VerticalLayout {
 
     private void refreshGrid() {
         // Filtrer pour n'afficher que les étudiants NON approuvés (pending)
-        List<Student> pendingStudents = studentService.getAllStudents().stream()
+        List<StudentDTO> pendingStudents = studentService.getAllStudents().stream()
             .filter(s -> !s.isApproved())
             .collect(Collectors.toList());
 

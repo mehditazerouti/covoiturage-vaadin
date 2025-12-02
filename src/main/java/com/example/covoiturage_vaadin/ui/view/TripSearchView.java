@@ -1,8 +1,8 @@
 package com.example.covoiturage_vaadin.ui.view;
 
+import com.example.covoiturage_vaadin.application.dto.trip.TripDTO;
 import com.example.covoiturage_vaadin.application.services.BookingService;
 import com.example.covoiturage_vaadin.application.services.TripService;
-import com.example.covoiturage_vaadin.domain.model.Trip;
 import com.example.covoiturage_vaadin.ui.component.TripBookingDialog;
 import com.example.covoiturage_vaadin.ui.component.TripEditDialog;
 import com.example.covoiturage_vaadin.ui.component.TripTypeBadge;
@@ -32,7 +32,7 @@ public class TripSearchView extends VerticalLayout {
 
     private final TripService tripService;
     private final BookingService bookingService;
-    private final Grid<Trip> grid = new Grid<>(Trip.class);
+    private final Grid<TripDTO> grid = new Grid<>(TripDTO.class);
     private final TextField destinationSearchField = new TextField();
     private final DateTimePicker dateFilter = new DateTimePicker();
     private final IntegerField seatsFilter = new IntegerField();
@@ -114,11 +114,11 @@ public class TripSearchView extends VerticalLayout {
         // Colonne pour le conducteur (récupère le nom de l'étudiant via la relation)
         grid.addColumn(trip -> trip.getDriver().getName())
             .setHeader("Conducteur");
-            
-        grid.addColumn(Trip::getDepartureAddress)
+
+        grid.addColumn(TripDTO::getDepartureAddress)
             .setHeader("Départ");
-            
-        grid.addColumn(Trip::getDestinationAddress)
+
+        grid.addColumn(TripDTO::getDestinationAddress)
             .setHeader("Destination");
 
         // Formatage de la date et heure (avec un motif français)
@@ -126,7 +126,7 @@ public class TripSearchView extends VerticalLayout {
         grid.addColumn(trip -> trip.getDepartureTime().format(formatter))
             .setHeader("Date & Heure");
 
-        grid.addColumn(Trip::getAvailableSeats)
+        grid.addColumn(TripDTO::getAvailableSeats)
             .setHeader("Places restantes");
 
         // Colonne Type (Régulier/Ponctuel)

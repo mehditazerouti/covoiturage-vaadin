@@ -1,7 +1,7 @@
 package com.example.covoiturage_vaadin.ui.component;
 
+import com.example.covoiturage_vaadin.application.dto.trip.TripDTO;
 import com.example.covoiturage_vaadin.application.services.BookingService;
-import com.example.covoiturage_vaadin.domain.model.Trip;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -16,7 +16,7 @@ public class TripBookingDialog extends ConfirmDialog {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    public TripBookingDialog(Trip trip, BookingService bookingService, Runnable onSuccess) {
+    public TripBookingDialog(TripDTO trip, BookingService bookingService, Runnable onSuccess) {
         setHeader("Confirmer la réservation");
 
         // Message avec détails du trajet

@@ -1,5 +1,7 @@
 package com.example.covoiturage_vaadin.application.services;
 
+import com.example.covoiturage_vaadin.application.dto.booking.BookingDTO;
+import com.example.covoiturage_vaadin.application.dto.mapper.BookingMapper;
 import com.example.covoiturage_vaadin.application.ports.IBookingRepositoryPort;
 import com.example.covoiturage_vaadin.application.ports.ITripRepositoryPort;
 import com.example.covoiturage_vaadin.domain.model.Booking;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -19,20 +22,27 @@ public class BookingService {
     private final ITripRepositoryPort tripRepository;
     private final StudentService studentService;
     private final SecurityContextService securityContext;
+    private final BookingMapper bookingMapper;
 
     public BookingService(IBookingRepositoryPort bookingRepository,
                          ITripRepositoryPort tripRepository,
                          StudentService studentService,
-                         SecurityContextService securityContext) {
+                         SecurityContextService securityContext,
+                         BookingMapper bookingMapper) {
         this.bookingRepository = bookingRepository;
         this.tripRepository = tripRepository;
         this.studentService = studentService;
         this.securityContext = securityContext;
+        this.bookingMapper = bookingMapper;
     }
 
-    // Cas d'usage : Créer une réservation
+    /**
+     * Cas d'usage : Créer une réservation.
+     * @param tripId ID du trajet à réserver
+     * @return BookingDTO de la réservation créée
+     */
     @Transactional
-    public Booking createBooking(Long tripId) {
+    public BookingDTO createBooking(Long tripId) {
         // 1. Récupérer l'utilisateur connecté
         String username = securityContext.getCurrentUsername()
             .orElseThrow(() -> new IllegalStateException("Aucun utilisateur authentifié"));
@@ -71,7 +81,10 @@ public class BookingService {
 
         // 6. Créer la réservation
         Booking booking = new Booking(trip, student);
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // 7. Convertir en DTO avant de retourner
+        return bookingMapper.toDTO(savedBooking);
     }
 
     // Cas d'usage : Annuler une réservation
@@ -110,24 +123,40 @@ public class BookingService {
         bookingRepository.save(booking);
     }
 
-    // Cas d'usage : Récupérer les réservations de l'utilisateur connecté
-    public List<Booking> getMyBookings() {
+    /**
+     * Cas d'usage : Récupérer les réservations de l'utilisateur connecté.
+     * @return Liste de BookingDTO
+     */
+    public List<BookingDTO> getMyBookings() {
         String username = securityContext.getCurrentUsername()
             .orElseThrow(() -> new IllegalStateException("Aucun utilisateur authentifié"));
 
         Student student = studentService.getStudentByUsername(username)
             .orElseThrow(() -> new IllegalStateException("Étudiant non trouvé"));
 
-        return bookingRepository.findByStudentId(student.getId());
+        return bookingRepository.findByStudentId(student.getId()).stream()
+                .map(bookingMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Cas d'usage : Récupérer les réservations d'un trajet (pour le conducteur/admin)
-    public List<Booking> getBookingsByTrip(Long tripId) {
-        return bookingRepository.findByTripId(tripId);
+    /**
+     * Cas d'usage : Récupérer les réservations d'un trajet (pour le conducteur/admin).
+     * @param tripId ID du trajet
+     * @return Liste de BookingDTO
+     */
+    public List<BookingDTO> getBookingsByTrip(Long tripId) {
+        return bookingRepository.findByTripId(tripId).stream()
+                .map(bookingMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Récupérer toutes les réservations (admin)
-    public List<Booking> getAllBookings() {
-        return bookingRepository.findAll();
+    /**
+     * Récupérer toutes les réservations (admin).
+     * @return Liste de BookingDTO
+     */
+    public List<BookingDTO> getAllBookings() {
+        return bookingRepository.findAll().stream()
+                .map(bookingMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }
