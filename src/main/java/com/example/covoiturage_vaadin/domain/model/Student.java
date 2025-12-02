@@ -30,6 +30,8 @@ public class Student {
 	private boolean approved = false;  // Étudiant validé par un admin (true) ou en attente (false)
 
 	private LocalDateTime createdAt;
+
+	private String avatar = "USER";  // Icône d'avatar : USER, MALE, FEMALE (VaadinIcon)
 	// getters/setters
 	
 	// Constructeur vide (obligatoire pour JPA)
@@ -127,5 +129,13 @@ public class Student {
 
     public void setApproved(boolean approved) {
         this.approved = approved;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 }

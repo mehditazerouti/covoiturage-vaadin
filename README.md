@@ -68,12 +68,33 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
   - Un étudiant ne peut avoir qu'une seule réservation active par trajet
   - Les réservations annulées ne bloquent pas une nouvelle réservation
 
+### ✅ Profil utilisateur (Complète)
+- **Bouton profil** : Accessible dans le header (icône utilisateur en haut à droite)
+- **Affichage complet** :
+  - Avatar personnalisable (3 icônes Vaadin : USER, MALE, FEMALE)
+  - Nom complet et email (modifiables)
+  - Code étudiant (lecture seule, non modifiable)
+  - Statistiques personnelles :
+    - Nombre de trajets proposés
+    - Nombre de réservations effectuées
+  - Date de création du compte
+- **Modification du profil** :
+  - **Changement d'avatar** : Sélection parmi 3 icônes Vaadin
+  - **Modification nom/email** : Édition inline avec validation
+  - **Changement de mot de passe** : Dialog sécurisé avec vérification de l'ancien mot de passe + confirmation
+- **Sécurité** :
+  - Le password n'est jamais exposé (architecture DTO)
+  - Validation de l'ancien mot de passe avant changement
+  - Vérification d'unicité de l'email
+- **🔮 Évolution future** : Migration prévue vers des avatars de fichiers (upload d'images)
+
 ### ✅ Interface moderne & Composants réutilisables
 - Layout principal avec **sidebar navigation** (Vaadin AppLayout)
 - **Section utilisateur** : Rechercher trajet, Proposer trajet, Mes réservations
 - **Section admin** : Annuaire étudiants, Créer étudiant, Codes étudiants, Étudiants en attente
 - Navigation responsive avec drawer toggle
 - Bouton de déconnexion dans la sidebar
+- Bouton profil dans le header (accès rapide au profil utilisateur)
 - **Composants réutilisables** :
   - `StatusBadge` : Badge coloré pour statuts de réservation
   - `TripTypeBadge` : Badge pour type de trajet (Régulier/Ponctuel)
@@ -82,6 +103,9 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
   - `TripBookingDialog` : Dialog de réservation avec récapitulatif
   - `WhitelistCodeDialog` : Dialog d'ajout de code avec validation
   - `TripEditDialog` : Dialog d'édition/suppression de trajet
+  - `ProfileDialog` : Dialog principal de profil utilisateur
+  - `AvatarSelectionDialog` : Dialog de sélection d'avatar (icônes Vaadin)
+  - `ChangePasswordDialog` : Dialog de changement de mot de passe sécurisé
   - `SearchBar` : Barre de recherche réutilisable avec filtrage en temps réel (300ms debounce)
 - **Performance** : Scroll infini Vaadin (chargement progressif automatique)
 
@@ -265,7 +289,43 @@ ADD CONSTRAINT FKkp5ujmgvd2pmsehwpu2vyjkwb
 FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 ```
 
+#### 3. Colonne avatar pour Student
+```sql
+-- Si la colonne n'existe pas encore
+ALTER TABLE student ADD COLUMN avatar VARCHAR(255) DEFAULT 'USER';
+
+-- Si la colonne existe déjà sans le DEFAULT
+ALTER TABLE student MODIFY COLUMN avatar VARCHAR(255) DEFAULT 'USER';
+```
+
 ## Historique des développements
+
+### Système de profil utilisateur (02/12/2025) ✅
+- **Implémenté** : Système complet de gestion de profil utilisateur
+- **Nouveau DTO** :
+  - `ProfileDTO` : DTO avec statistiques (trajets proposés, réservations effectuées, date de création)
+- **Nouveaux composants** (3) :
+  - `ProfileDialog` : Dialog principal de profil (affichage + modification)
+  - `AvatarSelectionDialog` : Sélection d'avatar (grille 3 icônes : USER, MALE, FEMALE)
+  - `ChangePasswordDialog` : Changement de mot de passe avec validation sécurisée
+- **Modifications entités** :
+  - `Student.java` : Ajout champ `avatar` (String, default "USER")
+  - `StudentDTO.java` : Ajout champ `avatar`
+- **Modifications services** :
+  - `StudentMapper.java` : Méthode `toProfileDTO()` avec statistiques
+  - `StudentService.java` : 4 nouvelles méthodes (getProfile, updateProfile, updateAvatar, changePassword)
+- **Modifications UI** :
+  - `MainLayout.java` : Bouton profil dans le header (icône VaadinIcon.USER à droite)
+  - Injection de `StudentService` et `SecurityContextService` dans MainLayout
+- **Fonctionnalités** :
+  - ✅ Affichage complet : nom, email, avatar, code étudiant, statistiques, date de création
+  - ✅ Modification inline : nom, email (avec validation d'unicité)
+  - ✅ Changement d'avatar : 3 icônes Vaadin (USER, MALE, FEMALE)
+  - ✅ Changement de mot de passe : Dialog sécurisé avec vérification ancien mot de passe
+  - ✅ Statistiques en temps réel : Calcul dynamique des trajets proposés et réservations
+- **Migration SQL** : Ajout colonne `avatar` avec DEFAULT 'USER'
+- **🔮 Évolution prévue** : Migration vers upload d'images personnalisées
+- **Total** : 1 DTO créé, 3 composants créés, 5 fichiers modifiés
 
 ### Composant SearchBar + Recherche dans vues admin (02/12/2025) ✅
 - **Implémenté** : Composant de recherche réutilisable avec intégration dans 3 vues admin
@@ -398,14 +458,16 @@ FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
 - **✅ Services adaptés** : Tous les services retournent exclusivement des DTOs
 - **✅ Vues adaptées** : Toutes les vues utilisent Grid<DTO> au lieu de Grid<Entity>
 - **✅ Sécurité maximale** : Le password n'est JAMAIS exposé (StudentDTO ne contient pas le champ password)
-- **✅ Architecture propre** : Séparation claire entre Domaine (Entités JPA) et Présentation (DTOs) 
+- **✅ Architecture propre** : Séparation claire entre Domaine (Entités JPA) et Présentation (DTOs)
 
-### 2. Vue Profil utilisateur (En cours)
-- **Changement d'avatar** : Sélection parmi une liste prédéfinie d'avatars
-- **Changement de mot de passe** : Formulaire sécurisé avec confirmation
-- **Modification nom/email** : Édition des informations personnelles
-- **Code étudiant** : Affichage uniquement (non modifiable)
-- **Statistiques** : Nombre de trajets proposés, réservations effectuées
+### 2. ✅ Vue Profil utilisateur (TERMINÉ 02/12/2025)
+- **✅ Bouton profil** : Intégré dans le header (icône VaadinIcon.USER)
+- **✅ Affichage complet** : Nom, email, avatar, code étudiant, statistiques, date de création
+- **✅ Modification avatar** : Sélection parmi 3 icônes Vaadin (USER, MALE, FEMALE)
+- **✅ Changement de mot de passe** : Dialog sécurisé avec vérification + confirmation
+- **✅ Modification nom/email** : Édition inline avec validation d'unicité
+- **✅ Statistiques** : Trajets proposés + réservations effectuées
+- **🔮 Évolution future** : Migration vers upload d'images personnalisées
 
 ### 3. Design System Neobrutalism
 - **Couleurs vives** : Jaune (#FFFF00), Cyan (#00FFFF), Magenta (#FF00FF)

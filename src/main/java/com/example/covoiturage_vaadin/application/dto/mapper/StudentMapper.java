@@ -3,6 +3,7 @@ package com.example.covoiturage_vaadin.application.dto.mapper;
 import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.dto.student.StudentListDTO;
 import com.example.covoiturage_vaadin.application.dto.student.StudentCreateDTO;
+import com.example.covoiturage_vaadin.application.dto.student.ProfileDTO;
 import com.example.covoiturage_vaadin.domain.model.Student;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +43,8 @@ public class StudentMapper {
             student.getRole(),
             student.isEnabled(),
             student.isApproved(),
-            student.getCreatedAt()
+            student.getCreatedAt(),
+            student.getAvatar()
         );
     }
 
@@ -113,5 +115,32 @@ public class StudentMapper {
         student.setApproved(dto.isApproved());
         // Le password n'est PAS mis à jour ici (sécurité)
         // Le studentCode n'est PAS mis à jour (immuable)
+    }
+
+    /**
+     * Convertit une entité Student en ProfileDTO avec statistiques.
+     * ⚠️ Les statistiques (tripsCount, bookingsCount) doivent être calculées par le service.
+     *
+     * @param student L'entité Student à convertir
+     * @param tripsCount Nombre de trajets proposés
+     * @param bookingsCount Nombre de réservations effectuées
+     * @return ProfileDTO ou null si student est null
+     */
+    public ProfileDTO toProfileDTO(Student student, long tripsCount, long bookingsCount) {
+        if (student == null) {
+            return null;
+        }
+
+        return new ProfileDTO(
+            student.getId(),
+            student.getName(),
+            student.getEmail(),
+            student.getStudentCode(),
+            student.getUsername(),
+            student.getAvatar(),
+            student.getCreatedAt(),
+            tripsCount,
+            bookingsCount
+        );
     }
 }

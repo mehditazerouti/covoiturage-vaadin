@@ -1,8 +1,11 @@
 package com.example.covoiturage_vaadin.application.services;
 
 import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
+import com.example.covoiturage_vaadin.application.dto.student.ProfileDTO;
 import com.example.covoiturage_vaadin.application.dto.mapper.StudentMapper;
 import com.example.covoiturage_vaadin.application.ports.IStudentRepositoryPort;
+import com.example.covoiturage_vaadin.application.ports.ITripRepositoryPort;
+import com.example.covoiturage_vaadin.application.ports.IBookingRepositoryPort;
 import com.example.covoiturage_vaadin.domain.model.Student;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,15 +20,21 @@ import java.util.stream.Collectors;
 @Service
 public class StudentService {
     private final IStudentRepositoryPort studentRepository;
+    private final ITripRepositoryPort tripRepository;
+    private final IBookingRepositoryPort bookingRepository;
     private final PasswordEncoder passwordEncoder;
     private final AllowedStudentCodeService codeService;
     private final StudentMapper studentMapper;
 
     public StudentService(IStudentRepositoryPort studentRepository,
+                         ITripRepositoryPort tripRepository,
+                         IBookingRepositoryPort bookingRepository,
                          PasswordEncoder passwordEncoder,
                          AllowedStudentCodeService codeService,
                          StudentMapper studentMapper) {
         this.studentRepository = studentRepository;
+        this.tripRepository = tripRepository;
+        this.bookingRepository = bookingRepository;
         this.passwordEncoder = passwordEncoder;
         this.codeService = codeService;
         this.studentMapper = studentMapper;
@@ -225,5 +234,98 @@ public class StudentService {
         String codePart = studentCode.length() >= 4 ? studentCode.substring(0, 4) : studentCode;
 
         return (namePart + codePart).toLowerCase();
+    }
+
+    // ========== MÉTHODES DE GESTION DE PROFIL ==========
+
+    /**
+     * Récupère le profil complet d'un étudiant avec statistiques.
+     *
+     * @param studentId L'ID de l'étudiant
+     * @return ProfileDTO avec stats, ou null si l'étudiant n'existe pas
+     */
+    @Transactional(readOnly = true)
+    public ProfileDTO getProfile(Long studentId) {
+        Student student = studentRepository.findById(studentId).orElse(null);
+        if (student == null) {
+            return null;
+        }
+
+        // Calculer les statistiques
+        long tripsCount = tripRepository.findAll().stream()
+            .filter(trip -> trip.getDriver() != null && trip.getDriver().getId().equals(studentId))
+            .count();
+
+        long bookingsCount = bookingRepository.findAll().stream()
+            .filter(booking -> booking.getStudent() != null && booking.getStudent().getId().equals(studentId))
+            .count();
+
+        return studentMapper.toProfileDTO(student, tripsCount, bookingsCount);
+    }
+
+    /**
+     * Met à jour le profil d'un étudiant (nom et email uniquement).
+     *
+     * @param studentId L'ID de l'étudiant
+     * @param name Nouveau nom
+     * @param email Nouvel email
+     * @return StudentDTO mis à jour
+     */
+    @Transactional
+    public StudentDTO updateProfile(Long studentId, String name, String email) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new IllegalArgumentException("Étudiant non trouvé"));
+
+        // Vérifier que l'email n'est pas déjà utilisé par un autre étudiant
+        if (!student.getEmail().equals(email) && existsByEmail(email)) {
+            throw new IllegalArgumentException("Cet email est déjà utilisé");
+        }
+
+        student.setName(name);
+        student.setEmail(email);
+
+        Student savedStudent = studentRepository.save(student);
+        return studentMapper.toDTO(savedStudent);
+    }
+
+    /**
+     * Met à jour l'avatar d'un étudiant.
+     *
+     * @param studentId L'ID de l'étudiant
+     * @param avatar Nom de l'icône Vaadin (USER, MALE, FEMALE)
+     * @return StudentDTO mis à jour
+     */
+    @Transactional
+    public StudentDTO updateAvatar(Long studentId, String avatar) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new IllegalArgumentException("Étudiant non trouvé"));
+
+        student.setAvatar(avatar);
+
+        Student savedStudent = studentRepository.save(student);
+        return studentMapper.toDTO(savedStudent);
+    }
+
+    /**
+     * Change le mot de passe d'un étudiant.
+     *
+     * @param studentId L'ID de l'étudiant
+     * @param oldPassword Ancien mot de passe (en clair)
+     * @param newPassword Nouveau mot de passe (en clair)
+     * @throws IllegalArgumentException Si l'ancien mot de passe est incorrect
+     */
+    @Transactional
+    public void changePassword(Long studentId, String oldPassword, String newPassword) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new IllegalArgumentException("Étudiant non trouvé"));
+
+        // Vérifier que l'ancien mot de passe est correct
+        if (!passwordEncoder.matches(oldPassword, student.getPassword())) {
+            throw new IllegalArgumentException("L'ancien mot de passe est incorrect");
+        }
+
+        // Hasher et sauvegarder le nouveau mot de passe
+        student.setPassword(passwordEncoder.encode(newPassword));
+        studentRepository.save(student);
     }
 }

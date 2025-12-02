@@ -3,43 +3,43 @@ package com.example.covoiturage_vaadin.application.dto.student;
 import java.time.LocalDateTime;
 
 /**
- * DTO pour afficher les détails d'un étudiant.
- * ⚠️ NE CONTIENT PAS le mot de passe (sécurité).
+ * DTO pour afficher le profil complet d'un étudiant avec statistiques.
  *
  * Utilisé pour :
- * - Afficher le profil d'un étudiant
- * - Liste des étudiants dans AdminStudentView
- * - Détails d'un étudiant en attente de validation
+ * - Afficher le profil utilisateur dans ProfileDialog
+ * - Statistiques : nombre de trajets proposés, nombre de réservations
+ *
+ * ⚠️ NE CONTIENT PAS le mot de passe (sécurité).
  */
-public class StudentDTO {
+public class ProfileDTO {
     private Long id;
     private String name;
     private String email;
     private String studentCode;
     private String username;
-    private String role;
-    private boolean enabled;
-    private boolean approved;
-    private LocalDateTime createdAt;
     private String avatar;  // Icône Vaadin : USER, MALE, FEMALE
+    private LocalDateTime createdAt;
 
-    // Constructeur vide (requis pour certains frameworks)
-    public StudentDTO() {}
+    // Statistiques
+    private long tripsCount;       // Nombre de trajets proposés (en tant que conducteur)
+    private long bookingsCount;    // Nombre de réservations effectuées (en tant que passager)
+
+    // Constructeur vide
+    public ProfileDTO() {}
 
     // Constructeur complet
-    public StudentDTO(Long id, String name, String email, String studentCode,
-                      String username, String role, boolean enabled,
-                      boolean approved, LocalDateTime createdAt, String avatar) {
+    public ProfileDTO(Long id, String name, String email, String studentCode,
+                     String username, String avatar, LocalDateTime createdAt,
+                     long tripsCount, long bookingsCount) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.studentCode = studentCode;
         this.username = username;
-        this.role = role;
-        this.enabled = enabled;
-        this.approved = approved;
-        this.createdAt = createdAt;
         this.avatar = avatar;
+        this.createdAt = createdAt;
+        this.tripsCount = tripsCount;
+        this.bookingsCount = bookingsCount;
     }
 
     // Getters et Setters
@@ -83,28 +83,12 @@ public class StudentDTO {
         this.username = username;
     }
 
-    public String getRole() {
-        return role;
+    public String getAvatar() {
+        return avatar;
     }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public boolean isApproved() {
-        return approved;
-    }
-
-    public void setApproved(boolean approved) {
-        this.approved = approved;
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -115,11 +99,19 @@ public class StudentDTO {
         this.createdAt = createdAt;
     }
 
-    public String getAvatar() {
-        return avatar;
+    public long getTripsCount() {
+        return tripsCount;
     }
 
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
+    public void setTripsCount(long tripsCount) {
+        this.tripsCount = tripsCount;
+    }
+
+    public long getBookingsCount() {
+        return bookingsCount;
+    }
+
+    public void setBookingsCount(long bookingsCount) {
+        this.bookingsCount = bookingsCount;
     }
 }

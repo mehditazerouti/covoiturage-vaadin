@@ -1,6 +1,8 @@
 package com.example.covoiturage_vaadin.ui.component;
 
 
+import com.example.covoiturage_vaadin.application.services.SecurityContextService;
+import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.view.AdminStudentCreationView;
 import com.example.covoiturage_vaadin.ui.view.AdminStudentView;
 import com.example.covoiturage_vaadin.ui.view.AdminWhitelistView;
@@ -10,10 +12,16 @@ import com.example.covoiturage_vaadin.ui.view.TripCreationView;
 import com.example.covoiturage_vaadin.ui.view.TripSearchView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
@@ -27,7 +35,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 public class MainLayout extends AppLayout {
 
-    public MainLayout() {
+    private final StudentService studentService;
+    private final SecurityContextService securityContextService;
+
+    public MainLayout(StudentService studentService, SecurityContextService securityContextService) {
+        this.studentService = studentService;
+        this.securityContextService = securityContextService;
         createHeader();
         createDrawer();
     }
@@ -40,9 +53,20 @@ public class MainLayout extends AppLayout {
             LumoUtility.FontWeight.BOLD
         );
 
+        // Bouton profil utilisateur (à droite)
+        Button profileButton = new Button(new Icon(VaadinIcon.USER));
+        profileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        profileButton.getElement().setAttribute("aria-label", "Profil utilisateur");
+        profileButton.addClickListener(e -> openProfileDialog());
+
         // Le Toggle est le bouton "hamburger" pour ouvrir/fermer le menu sur mobile
-        var header = new com.vaadin.flow.component.orderedlayout.HorizontalLayout(new DrawerToggle(), logo);
-        header.setDefaultVerticalComponentAlignment(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.CENTER);
+        var header = new com.vaadin.flow.component.orderedlayout.HorizontalLayout(
+            new DrawerToggle(),
+            logo
+        );
+        header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+        header.expand(logo); // Le logo prend tout l'espace disponible (pousse le bouton profil à droite)
+        header.add(profileButton); // Bouton profil à droite
         header.setWidthFull();
         header.addClassNames(
             LumoUtility.Padding.Vertical.NONE,
@@ -50,6 +74,33 @@ public class MainLayout extends AppLayout {
         );
 
         addToNavbar(header);
+    }
+
+    /**
+     * Ouvre le dialog de profil utilisateur
+     */
+    private void openProfileDialog() {
+        // Récupérer le username de l'utilisateur connecté
+        var usernameOpt = securityContextService.getCurrentUsername();
+        if (usernameOpt.isEmpty()) {
+            Notification notification = Notification.show("Erreur : utilisateur non connecté");
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            notification.setDuration(3000);
+            return;
+        }
+
+        // Récupérer l'étudiant par username
+        var studentOpt = studentService.getStudentByUsername(usernameOpt.get());
+        if (studentOpt.isEmpty()) {
+            Notification notification = Notification.show("Erreur : profil introuvable");
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            notification.setDuration(3000);
+            return;
+        }
+
+        Long studentId = studentOpt.get().getId();
+        ProfileDialog dialog = new ProfileDialog(studentService, studentId);
+        dialog.open();
     }
 
     private void createDrawer() {
