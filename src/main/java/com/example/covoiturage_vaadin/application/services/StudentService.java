@@ -328,4 +328,53 @@ public class StudentService {
         student.setPassword(passwordEncoder.encode(newPassword));
         studentRepository.save(student);
     }
+
+    /**
+     * Met à jour TOUS les champs d'un étudiant (réservé aux admins).
+     * Contrairement à updateProfile(), cette méthode permet de modifier :
+     * - Le code étudiant
+     * - Le username
+     * - Le rôle (USER/ADMIN)
+     * - L'état enabled
+     * - L'état approved
+     *
+     * @param updatedStudent DTO contenant les nouvelles valeurs
+     * @return StudentDTO mis à jour
+     * @throws IllegalArgumentException Si validation échoue ou étudiant non trouvé
+     */
+    @Transactional
+    public StudentDTO updateStudentAdmin(StudentDTO updatedStudent) {
+        Student student = studentRepository.findById(updatedStudent.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Étudiant non trouvé"));
+
+        // Vérifier unicité de l'email (si changé)
+        if (!student.getEmail().equals(updatedStudent.getEmail()) && existsByEmail(updatedStudent.getEmail())) {
+            throw new IllegalArgumentException("Cet email est déjà utilisé");
+        }
+
+        // Vérifier unicité du username (si changé)
+        if (!student.getUsername().equals(updatedStudent.getUsername()) && existsByUsername(updatedStudent.getUsername())) {
+            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
+        }
+
+        // Vérifier unicité du code étudiant (si changé)
+        if (!student.getStudentCode().equals(updatedStudent.getStudentCode())) {
+            Optional<Student> existingStudent = studentRepository.findByStudentCode(updatedStudent.getStudentCode());
+            if (existingStudent.isPresent() && !existingStudent.get().getId().equals(student.getId())) {
+                throw new IllegalArgumentException("Ce code étudiant est déjà utilisé");
+            }
+        }
+
+        // Mettre à jour tous les champs
+        student.setName(updatedStudent.getName());
+        student.setEmail(updatedStudent.getEmail());
+        student.setUsername(updatedStudent.getUsername());
+        student.setStudentCode(updatedStudent.getStudentCode());
+        student.setRole(updatedStudent.getRole());
+        student.setEnabled(updatedStudent.isEnabled());
+        student.setApproved(updatedStudent.isApproved());
+
+        Student savedStudent = studentRepository.save(student);
+        return studentMapper.toDTO(savedStudent);
+    }
 }

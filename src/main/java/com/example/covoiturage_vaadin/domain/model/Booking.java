@@ -17,6 +17,7 @@ public class Booking {
     private Trip trip;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Student student;
 
     private LocalDateTime bookedAt;

@@ -10,6 +10,8 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -31,6 +33,7 @@ public class AvatarSelectionDialog extends Dialog {
 
     private final Consumer<String> onSelect;
     private String selectedAvatar = "USER";
+    private final Map<String, Button> avatarButtons = new HashMap<>();
 
     public AvatarSelectionDialog(Consumer<String> onSelect) {
         this.onSelect = onSelect;
@@ -65,6 +68,7 @@ public class AvatarSelectionDialog extends Dialog {
 
         for (String avatarName : AVAILABLE_AVATARS) {
             Button avatarButton = createAvatarButton(avatarName);
+            avatarButtons.put(avatarName, avatarButton);
             avatarGrid.add(avatarButton);
         }
 
@@ -81,6 +85,10 @@ public class AvatarSelectionDialog extends Dialog {
         button.getStyle()
             .set("width", "80px")
             .set("height", "80px")
+            // AJOUTS POUR STABILISER LE CERCLE :
+            .set("min-width", "80px")  // 1. Force la largeur minimale égale à la largeur
+            .set("padding", "0")       // 2. Supprime l'espace interne réservé au texte
+            .set("flex-shrink", "0")   // 3. Empêche le layout d'écraser le bouton
             .set("border-radius", "50%");
 
         // Style par défaut (USER sélectionné)
@@ -90,30 +98,23 @@ public class AvatarSelectionDialog extends Dialog {
             button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         }
 
-        button.addClickListener(e -> selectAvatar(avatarName, button));
+        button.addClickListener(e -> selectAvatar(avatarName));
 
         return button;
     }
 
-    private void selectAvatar(String avatarName, Button clickedButton) {
+    private void selectAvatar(String avatarName) {
         selectedAvatar = avatarName;
 
-        // Mettre à jour les styles de tous les boutons
-        getChildren()
-            .filter(component -> component instanceof VerticalLayout)
-            .flatMap(layout -> layout.getChildren())
-            .filter(component -> component instanceof HorizontalLayout)
-            .flatMap(hLayout -> hLayout.getChildren())
-            .filter(component -> component instanceof Button)
-            .forEach(button -> {
-                Button btn = (Button) button;
-                btn.getThemeNames().clear();
-                if (btn == clickedButton) {
-                    btn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-                } else {
-                    btn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-                }
-            });
+        // Mettre à jour les styles de tous les boutons (simplifié avec la Map)
+        avatarButtons.forEach((name, button) -> {
+            button.getThemeNames().clear();
+            if (name.equals(selectedAvatar)) {
+                button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            } else {
+                button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            }
+        });
     }
 
     private void handleSelect() {

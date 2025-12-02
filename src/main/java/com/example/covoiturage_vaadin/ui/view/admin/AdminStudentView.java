@@ -2,6 +2,7 @@ package com.example.covoiturage_vaadin.ui.view.admin;
 
 import com.example.covoiturage_vaadin.application.dto.student.StudentDTO;
 import com.example.covoiturage_vaadin.application.services.StudentService;
+import com.example.covoiturage_vaadin.ui.component.dialog.AdminStudentProfileDialog;
 import com.example.covoiturage_vaadin.ui.component.dialog.ConfirmDeleteDialog;
 import com.example.covoiturage_vaadin.ui.component.MainLayout; // Import du layout
 import com.example.covoiturage_vaadin.ui.component.SearchBar;
@@ -121,7 +122,25 @@ public class AdminStudentView extends VerticalLayout {
         if (isAdmin) {
             grid.addComponentColumn(student -> {
                 String currentUsername = authentication.getName();
-                
+
+                // Layout horizontal pour contenir les boutons
+                HorizontalLayout actionsLayout = new HorizontalLayout();
+                actionsLayout.setSpacing(true);
+
+                // Bouton "Voir profil"
+                Button viewBtn = new Button(VaadinIcon.EYE.create());
+                viewBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+                viewBtn.setTooltipText("Voir le profil");
+                viewBtn.addClickListener(e -> {
+                    AdminStudentProfileDialog dialog = new AdminStudentProfileDialog(
+                        studentService,
+                        student.getId(),
+                        this::refreshGrid
+                    );
+                    dialog.open();
+                });
+
+                // Bouton "Supprimer"
                 Button deleteBtn = new Button(VaadinIcon.TRASH.create());
                 deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
 
@@ -140,7 +159,9 @@ public class AdminStudentView extends VerticalLayout {
                         dialog.open();
                     });
                 }
-                return deleteBtn;
+
+                actionsLayout.add(viewBtn, deleteBtn);
+                return actionsLayout;
             }).setHeader("Actions");
         }
     }

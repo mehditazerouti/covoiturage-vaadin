@@ -6,6 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.FetchType;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
 
 @Entity // Indique à JPA que c'est une table en base
@@ -25,7 +27,9 @@ public class Trip {
     }
 
     // Le conducteur du trajet (relation ManyToOne vers l'entité Student)
+    // CASCADE : Quand un étudiant est supprimé, tous ses trajets sont supprimés automatiquement
     @ManyToOne(fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Student driver; 
 
     private String departureAddress;
