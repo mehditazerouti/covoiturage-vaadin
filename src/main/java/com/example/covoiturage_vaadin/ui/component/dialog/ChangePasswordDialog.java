@@ -29,19 +29,58 @@ public class ChangePasswordDialog extends Dialog {
         add(layout);
 
         Button saveButton = new Button("Modifier", e -> {
-            if (oldPass.isEmpty() || newPass.isEmpty()) {
-                Notification.show("Champs obligatoires", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            // Réinitialiser les erreurs
+            oldPass.setInvalid(false);
+            newPass.setInvalid(false);
+            confirmPass.setInvalid(false);
+
+            // Validation des champs vides
+            if (oldPass.isEmpty()) {
+                oldPass.setInvalid(true);
+                oldPass.setErrorMessage("L'ancien mot de passe est requis");
                 return;
             }
+            if (newPass.isEmpty()) {
+                newPass.setInvalid(true);
+                newPass.setErrorMessage("Le nouveau mot de passe est requis");
+                return;
+            }
+            if (confirmPass.isEmpty()) {
+                confirmPass.setInvalid(true);
+                confirmPass.setErrorMessage("Veuillez confirmer le nouveau mot de passe");
+                return;
+            }
+
+            // Validation de la correspondance des mots de passe
             if (!newPass.getValue().equals(confirmPass.getValue())) {
-                Notification.show("Les mots de passe ne correspondent pas", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                confirmPass.setInvalid(true);
+                confirmPass.setErrorMessage("Les mots de passe ne correspondent pas");
+                Notification.show("Les mots de passe ne correspondent pas", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
+
+            // Validation de la longueur minimale
+            if (newPass.getValue().length() < 6) {
+                newPass.setInvalid(true);
+                newPass.setErrorMessage("Le mot de passe doit contenir au moins 6 caractères");
+                return;
+            }
+
             try {
                 onConfirm.accept(oldPass.getValue(), newPass.getValue());
+                Notification.show("Mot de passe modifié avec succès", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 close();
+            } catch (IllegalArgumentException ex) {
+                // Ancien mot de passe incorrect
+                oldPass.setInvalid(true);
+                oldPass.setErrorMessage("Mot de passe incorrect");
+                Notification.show("Erreur: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
             } catch (Exception ex) {
-                // L'erreur sera gérée par le callback si nécessaire, ou affichée ici
+                Notification.show("Erreur lors de la modification: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
