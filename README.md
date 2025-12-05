@@ -161,16 +161,14 @@ cd preprod-covoiturage-vaadin
 CREATE DATABASE covoiturage_db;
 ```
 
-3. **Appliquer les migrations SQL** (voir section Migrations)
-
-4. **Configurer application.properties** (si nécessaire)
+3. **Configurer application.properties (A changer selon votre configuration)**
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/covoiturage_db
 spring.datasource.username=root
 spring.datasource.password=
 ```
 
-5. **Lancer l'application**
+4. **Lancer l'application**
 ```bash
 mvn spring-boot:run
 ```
@@ -189,12 +187,10 @@ Email: admin@dauphine.eu
 Code: ADMIN001
 ```
 
-### Codes étudiants whitelistés (pour inscription rapide)
-```
-22405100 à 22405159 (60 codes au total)
-```
+### Comptes étudiants
 
-> **Note** : Vous pouvez vous inscrire avec l'un de ces codes pour un accès immédiat, ou utiliser un autre code qui nécessitera une validation admin.
+- **Identifiants** : 22405100 à 22405159 (60 codes au total)
+- **Mot de passe** : password123
 
 ### 🎲 Données de test générées automatiquement
 
@@ -324,33 +320,6 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 - Database : `covoiturage_db`
 - User : `root`
 - Password : (vide)
-
-### Migrations SQL requises
-
-#### 1. Contrainte ON DELETE SET NULL pour AllowedStudentCode
-```sql
-ALTER TABLE allowed_student_code DROP FOREIGN KEY FKb6y4t1fmdirvxv4ny3otlku8k;
-ALTER TABLE allowed_student_code
-ADD CONSTRAINT FKb6y4t1fmdirvxv4ny3otlku8k
-FOREIGN KEY (used_by_id) REFERENCES student(id) ON DELETE SET NULL;
-```
-
-#### 2. Contrainte ON DELETE CASCADE pour Booking
-```sql
-ALTER TABLE booking DROP FOREIGN KEY FKkp5ujmgvd2pmsehwpu2vyjkwb;
-ALTER TABLE booking
-ADD CONSTRAINT FKkp5ujmgvd2pmsehwpu2vyjkwb
-FOREIGN KEY (trip_id) REFERENCES trip(id) ON DELETE CASCADE;
-```
-
-#### 3. Colonne avatar pour Student
-```sql
--- Si la colonne n'existe pas encore
-ALTER TABLE student ADD COLUMN avatar VARCHAR(255) DEFAULT 'USER';
-
--- Si la colonne existe déjà sans le DEFAULT
-ALTER TABLE student MODIFY COLUMN avatar VARCHAR(255) DEFAULT 'USER';
-```
 
 ## Historique des développements
 
