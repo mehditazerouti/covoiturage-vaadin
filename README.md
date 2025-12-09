@@ -6,9 +6,9 @@
 Application de covoiturage développée avec Spring Boot et Vaadin, suivant une **architecture hexagonale** (Clean Architecture) avec système d'authentification et de réservation complets.
 
 ### 📊 Statistiques du projet
-- **65 fichiers Java** organisés en 4 couches (Domain, Application, Infrastructure, UI)
-- **7 DTOs + 3 Mappers** pour une séparation complète des couches
-- **9 vues** (3 trip, 4 admin, 2 auth) et **9 dialogs** réutilisables
+- **82 fichiers Java** organisés en 4 couches (Domain, Application, Infrastructure, UI)
+- **12 DTOs + 4 Mappers** pour une séparation complète des couches
+- **10 vues** (3 trip, 4 admin, 2 auth, 1 messaging) et **11 dialogs** réutilisables
 - **Architecture DTO à 100%** : sécurité maximale (password jamais exposé)
 - **60 étudiants de test**, **120 trajets** et **80 réservations** générés automatiquement
 
@@ -81,6 +81,22 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
   - Un étudiant ne peut pas réserver son propre trajet
   - Un étudiant ne peut avoir qu'une seule réservation active par trajet
   - Les réservations annulées ne bloquent pas une nouvelle réservation
+
+### ✅ Messagerie Sécurisée (Phase 6 complète)
+- **Contexte sécurisé** : Système de messagerie strictement restreint aux covoitureurs
+  - Règle stricte : Un utilisateur ne peut contacter qu'une personne avec qui il partage un trajet (Passager ↔ Conducteur)
+  - **Support d'historique** : Fonctionne même si la réservation est annulée (permet de gérer les imprévus)
+- **Interface style "App de chat"** :
+  - Vue conversationnelle avec bulles de messages (alignement gauche/droite)
+  - Liste des conversations avec aperçu du dernier message et horodatage
+  - **Badge de notification** : Compteur de messages non-lus en temps réel dans la sidebar
+- **Fonctionnalités avancées** :
+  - **Soft Delete** : Possibilité de "Masquer" une conversation (reste en base de données mais disparaît de la vue utilisateur)
+  - **Statut de lecture** : Marque visuelle des messages non lus
+- **Architecture technique** :
+  - Entités `Message` et `Conversation` distinctes
+  - DTOs dédiés (`MessageDTO`, `ConversationDTO`, `ContactDTO`)
+  - Règles métier encapsulées dans `MessageService.canMessageUser()`
 
 ### ✅ Profil utilisateur (Complète)
 - **Bouton profil** : Accessible dans le header (icône utilisateur en haut à droite)
@@ -220,6 +236,8 @@ src/main/java/com/example/covoiturage_vaadin/
 │   ├── Booking.java           # Réservation (avec méthodes cancel(), isActive())
 │   ├── BookingStatus.java     # Enum (PENDING, CONFIRMED, CANCELLED)
 │   └── AllowedStudentCode.java # Whitelist codes étudiants
+│   ├── Message.java           # 🆕 Message (content, sentAt, isRead)
+│   └── Conversation.java      # 🆕 Conversation (participants, hidden flags)
 ├── application/
 │   ├── dto/                   # 🆕 Data Transfer Objects (DTO)
 │   │   ├── student/
@@ -232,15 +250,24 @@ src/main/java/com/example/covoiturage_vaadin/
 │   │   │   └── TripCreateDTO.java     # Création
 │   │   ├── booking/
 │   │   │   └── BookingDTO.java        # Affichage (trip + student)
+│   │   ├── message/           # 🆕 DTOs Messagerie
+│   │   │   ├── MessageDTO.java
+│   │   │   ├── MessageCreateDTO.java
+│   │   │   ├── ConversationDTO.java
+│   │   │   ├── ConversationDetailDTO.java
+│   │   │   └── ContactDTO.java
 │   │   └── mapper/
 │   │       ├── StudentMapper.java     # Entity ↔ DTO conversions
 │   │       ├── TripMapper.java        # Entity ↔ DTO conversions
 │   │       └── BookingMapper.java     # Entity ↔ DTO conversions
+│   │       └── MessageMapper.java  # 🆕 Mapper Messagerie
 │   ├── ports/                 # Interfaces (contrats)
 │   │   ├── IStudentRepositoryPort.java
 │   │   ├── ITripRepositoryPort.java
 │   │   ├── IBookingRepositoryPort.java
-│   │   └── IAllowedStudentCodeRepositoryPort.java
+│   │   └── IAllowedStudentCodeRepositoryPort.java``
+│   │   ├── IMessageRepositoryPort.java       # 🆕
+│   │   └── IConversationRepositoryPort.java  # 🆕
 │   └── services/              # Services métier (retournent des DTOs)
 │       ├── StudentService.java
 │       ├── TripService.java
@@ -248,12 +275,15 @@ src/main/java/com/example/covoiturage_vaadin/
 │       ├── SecurityContextService.java
 │       ├── AllowedStudentCodeService.java
 │       └── AuthenticationService.java
+│       └── MessageService.java             # 🆕 Logique métier messagerie
 ├── infrastructure/
 │   ├── adapter/               # Implémentations JPA
 │   │   ├── StudentJpaRepository + Adapter
 │   │   ├── TripJpaRepository + Adapter
 │   │   ├── BookingJpaRepository + Adapter
 │   │   └── AllowedStudentCodeJpaRepository + Adapter
+│   │   ├── MessageJpaRepository + Adapter      # 🆕
+│   │   └── ConversationJpaRepository + Adapter # 🆕
 │   ├── security/              # UserDetailsService
 │   │   └── UserDetailsServiceImpl.java
 │   └── config/                # Configuration Security + Data
@@ -264,6 +294,9 @@ src/main/java/com/example/covoiturage_vaadin/
     │   ├── MainLayout.java    # Layout principal + sidebar
     │   ├── LogoutButton.java  # Bouton déconnexion
     │   ├── SearchBar.java     # Barre de recherche avec debounce
+    │   ├── message/           # 🆕 Composants visuels messagerie
+    │   │   ├── MessageBubble.java
+    │   │   └── UnreadBadge.java
     │   ├── dialog/            # 🆕 Dialogs réutilisables
     │   │   ├── ProfileDialog.java           # Dialog profil utilisateur
     │   │   ├── AvatarSelectionDialog.java   # Sélection d'avatar
@@ -273,6 +306,10 @@ src/main/java/com/example/covoiturage_vaadin/
     │   │   ├── BookingCancelDialog.java     # Confirmation annulation
     │   │   ├── WhitelistCodeDialog.java     # Ajout code étudiant
     │   │   └── ConfirmDeleteDialog.java     # Confirmation suppression
+    │   │   ├── ProfileDialog.java
+    │   │   ├── ConversationDialog.java     # 🆕 Dialog de chat
+    │   │   ├── NewMessageDialog.java       # 🆕 Nouveau message
+    │   │   ├── ContactSelectionDialog.java # 🆕 Choix du contact
     │   └── badge/             # 🆕 Badges réutilisables
     │       ├── StatusBadge.java    # Badge statut réservation
     │       └── TripTypeBadge.java  # Badge type trajet
@@ -286,15 +323,18 @@ src/main/java/com/example/covoiturage_vaadin/
         │   ├── AdminWhitelistView.java        # Gestion whitelist
         │   └── PendingStudentsView.java       # Validation étudiants
         └── trip/              # 🆕 Vues trajets/réservations
-            ├── TripSearchView.java      # Recherche + Réservation
-            ├── TripCreationView.java    # Proposition trajet
-            └── MyBookingsView.java      # Mes réservations
+        |   ├── TripSearchView.java      # Recherche + Réservation
+        |   ├── TripCreationView.java    # Proposition trajet
+        |   └── MyBookingsView.java      # Mes réservations
+        └── message/           # 🆕 Vue Messagerie
+            └── MessagingView.java
 ```
 
 ## Vues disponibles
 
 | Route | Vue | Accès | Description |
 |-------|-----|-------|-------------|
+| `/messages` |	MessagingView |	Authentifié |	Messagerie sécurisée et historique des conversations |
 | `/login` | LoginView | Public | Authentification |
 | `/register` | RegisterView | Public | Inscription publique |
 | `/` | TripSearchView | Authentifié | Recherche + Réservation de trajets |
@@ -322,6 +362,20 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 - Password : (vide)
 
 ## Historique des développements
+
+### Système de Messagerie Sécurisée (09/12/2025) ✅
+- **Implémenté** : Système complet de chat Driver ↔ Passenger
+- **Sécurité Métier** :
+  - Vérification stricte du lien entre utilisateurs via `MessageService.canMessageUser()`
+  - Autorise la communication si une réservation existe (Active ou Annulée)
+- **Nouveaux Composants UI** :
+  - `MessagingView` : Vue principale avec liste des conversations
+  - `ConversationDialog` : Interface de chat temps réel (simulé) avec bulles
+  - `UnreadBadge` : Badge de notification intégré dans la sidebar
+- **Architecture Données** :
+  - Soft Delete implémenté (`hiddenByParticipant`) pour masquer les conversations sans supprimer l'historique
+  - Séparation `Conversation` (Header) / `Message` (Détail) pour optimiser les performances
+- **Fichiers** : 17 nouveaux fichiers (Domain, DTOs, Services, UI)
 
 ### Réorganisation de l'architecture UI par packages (02/12/2025) ✅
 - **Implémenté** : Restructuration complète des packages UI pour améliorer la maintenabilité
