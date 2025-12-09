@@ -9,4 +9,7 @@ public interface TripJpaRepository extends JpaRepository<Trip, Long> {
     
     // Requête générée automatiquement par Spring Data pour le besoin de recherche
     List<Trip> findByDestinationAddressContainingIgnoreCase(String destinationAddress);
+
+    // Trouver les trajets par conducteur (pour le système de messagerie)
+    List<Trip> findByDriverId(Long driverId);
 }

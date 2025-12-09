@@ -40,4 +40,9 @@ public class TripRepositoryAdapter implements ITripRepositoryPort {
         // Utilisation de la méthode spécifique de l'interface JPA
         return jpaRepository.findByDestinationAddressContainingIgnoreCase(destination);
     }
+
+    @Override
+    public List<Trip> findByDriverId(Long driverId) {
+        return jpaRepository.findByDriverId(driverId);
+    }
 }

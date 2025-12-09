@@ -13,4 +13,7 @@ public interface ITripRepositoryPort {
 
     // Méthode clé pour le cahier des charges
     List<Trip> findTripsByDestination(String destination); // Rechercher un trajet par adresse [cite: 21]
+
+    // Méthode pour le système de messagerie : trouver les trajets d'un conducteur
+    List<Trip> findByDriverId(Long driverId);
 }

@@ -1,8 +1,10 @@
 package com.example.covoiturage_vaadin.ui.component;
 
+import com.example.covoiturage_vaadin.application.services.MessageService;
 import com.example.covoiturage_vaadin.application.services.SecurityContextService;
 import com.example.covoiturage_vaadin.application.services.StudentService;
 import com.example.covoiturage_vaadin.ui.component.dialog.ProfileDialog;
+import com.example.covoiturage_vaadin.ui.view.message.MessagingView;
 import com.example.covoiturage_vaadin.ui.view.admin.AdminStudentCreationView;
 import com.example.covoiturage_vaadin.ui.view.admin.AdminStudentView;
 import com.example.covoiturage_vaadin.ui.view.admin.AdminWhitelistView;
@@ -15,6 +17,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -35,10 +38,12 @@ public class MainLayout extends AppLayout {
 
     private final StudentService studentService;
     private final SecurityContextService securityContextService;
+    private final MessageService messageService;
 
-    public MainLayout(StudentService studentService, SecurityContextService securityContextService) {
+    public MainLayout(StudentService studentService, SecurityContextService securityContextService, MessageService messageService) {
         this.studentService = studentService;
         this.securityContextService = securityContextService;
+        this.messageService = messageService;
         
         // Configuration de base
         setPrimarySection(Section.DRAWER);
@@ -107,6 +112,15 @@ public class MainLayout extends AppLayout {
         mainNav.addItem(new SideNavItem("Proposer un trajet", TripCreationView.class, VaadinIcon.PLUS_CIRCLE.create()));
         mainNav.addItem(new SideNavItem("Mes réservations", MyBookingsView.class, VaadinIcon.BOOKMARK.create()));
 
+        // Messages avec badge non-lus
+        SideNavItem messagesItem = new SideNavItem("Messages", MessagingView.class, VaadinIcon.ENVELOPE.create());
+        Span unreadBadge = new Span();
+        unreadBadge.getElement().getThemeList().add("badge error pill small");
+        unreadBadge.setVisible(false);
+        updateUnreadBadge(unreadBadge);
+        messagesItem.setSuffixComponent(unreadBadge);
+        mainNav.addItem(messagesItem);
+
         drawerContent.add(mainNav);
 
         // 2. Navigation Admin (Conditionnelle)
@@ -163,5 +177,20 @@ public class MainLayout extends AppLayout {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null && authentication.getAuthorities().stream()
             .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
+    private void updateUnreadBadge(Span badge) {
+        try {
+            int unreadCount = messageService.getTotalUnreadCount();
+            if (unreadCount > 0) {
+                badge.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+                badge.setVisible(true);
+            } else {
+                badge.setVisible(false);
+            }
+        } catch (Exception e) {
+            // En cas d'erreur, on masque simplement le badge
+            badge.setVisible(false);
+        }
     }
 }
