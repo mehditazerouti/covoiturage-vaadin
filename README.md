@@ -552,7 +552,7 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 - ✅ **DTO architecture à 100%** : Services retournent EXCLUSIVEMENT des DTOs, password jamais exposé
 - ✅ **Sécurité robuste** : BCrypt (strength 10), rate limiting (5 tentatives/15 min), cascade deletes
 - ✅ **Code propre** : Aucun code dupliqué majeur, imports nettoyés, organisation par packages
-- ✅ **Documentation complète** : Javadoc, commentaires, CLAUDE.md détaillé (380 lignes)
+- ✅ **Documentation complète** : Javadoc, commentaires
 - ✅ **Transaction management** : @Transactional correctement appliqué (readOnly pour lectures)
 
 **Points d'amélioration identifiés** :
@@ -691,11 +691,6 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
   - Diagrammes UML (classes, séquence) avec PlantUML
   - Guide d'installation détaillé
   - Vidéo de démonstration
-
-## Documentation technique
-
-Pour plus de détails sur l'architecture et les règles de code, consultez :
-- **CLAUDE.md** : Guide complet pour le développement (380 lignes, architecture détaillée)
 
 ---
 
