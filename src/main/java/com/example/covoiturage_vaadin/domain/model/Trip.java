@@ -1,26 +1,53 @@
 package com.example.covoiturage_vaadin.domain.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.FetchType;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.LocalDateTime;
 
-@Entity // Indique à JPA que c'est une table en base
+/**
+ * Entité JPA représentant un trajet de covoiturage.
+ *
+ * Validations JSR-303 appliquées sur les champs pour garantir
+ * l'intégrité des données au niveau de la couche domaine.
+ */
+@Entity
 public class Trip {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "L'adresse de destination est obligatoire")
+    @Size(min = 2, max = 200, message = "L'adresse de destination doit contenir entre 2 et 200 caractères")
+    @Column(nullable = false)
     private String destinationAddress;
+
+    @NotNull(message = "La date et heure de départ sont obligatoires")
+    @Column(nullable = false)
     private LocalDateTime departureTime;
+
+    @Min(value = 1, message = "Le nombre total de places doit être au minimum 1")
+    @Max(value = 8, message = "Le nombre total de places ne peut pas dépasser 8")
     private int totalSeats;
+
+    @Min(value = 0, message = "Le nombre de places disponibles ne peut pas être négatif")
     private int availableSeats; // Le nombre de places restantes
-    private boolean isRegular; // Pour distinguer les trajets réguliers/ponctuels [cite: 5]
+
+    private boolean isRegular; // Pour distinguer les trajets réguliers/ponctuels
     
     // Constructeur vide (obligatoire pour JPA)
     public Trip() {
@@ -30,8 +57,11 @@ public class Trip {
     // CASCADE : Quand un étudiant est supprimé, tous ses trajets sont supprimés automatiquement
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private Student driver; 
+    private Student driver;
 
+    @NotBlank(message = "L'adresse de départ est obligatoire")
+    @Size(min = 2, max = 200, message = "L'adresse de départ doit contenir entre 2 et 200 caractères")
+    @Column(nullable = false)
     private String departureAddress;
     public void setId(Long id) {
         this.id = id;

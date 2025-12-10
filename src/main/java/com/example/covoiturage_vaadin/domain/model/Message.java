@@ -1,10 +1,20 @@
 package com.example.covoiturage_vaadin.domain.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.LocalDateTime;
 
+/**
+ * Entité JPA représentant un message dans une conversation.
+ *
+ * Validations JSR-303 appliquées sur les champs pour garantir
+ * l'intégrité des données au niveau de la couche domaine.
+ */
 @Entity
 public class Message {
 
@@ -12,21 +22,27 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull(message = "La conversation est obligatoire")
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Conversation conversation;
 
+    @NotNull(message = "L'expéditeur est obligatoire")
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Student sender;
 
+    @NotNull(message = "Le destinataire est obligatoire")
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Student recipient;
 
+    @NotBlank(message = "Le contenu du message est obligatoire")
+    @Size(min = 1, max = 2000, message = "Le message doit contenir entre 1 et 2000 caractères")
     @Column(length = 2000, nullable = false)
     private String content;
 
+    @NotNull(message = "La date d'envoi est obligatoire")
     private LocalDateTime sentAt;
 
     private boolean isRead = false;

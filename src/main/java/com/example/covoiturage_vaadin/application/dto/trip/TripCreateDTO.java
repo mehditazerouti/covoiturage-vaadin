@@ -1,5 +1,12 @@
 package com.example.covoiturage_vaadin.application.dto.trip;
 
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.time.LocalDateTime;
 
 /**
@@ -16,12 +23,32 @@ import java.time.LocalDateTime;
  * Note :
  * - Ce DTO ne doit JAMAIS être retourné par une API/Service
  * - Utilisé uniquement en INPUT (création)
+ *
+ * Validations JSR-303 :
+ * - @NotBlank : Champ texte obligatoire
+ * - @NotNull : Champ non-texte obligatoire
+ * - @Size : Longueur min/max pour les adresses
+ * - @Min/@Max : Valeurs numériques (places)
+ * - @Future : Date dans le futur
  */
 public class TripCreateDTO {
+
+    @NotBlank(message = "L'adresse de départ est obligatoire")
+    @Size(min = 2, max = 200, message = "L'adresse de départ doit contenir entre 2 et 200 caractères")
     private String departureAddress;
+
+    @NotBlank(message = "L'adresse de destination est obligatoire")
+    @Size(min = 2, max = 200, message = "L'adresse de destination doit contenir entre 2 et 200 caractères")
     private String destinationAddress;
+
+    @NotNull(message = "La date et heure de départ sont obligatoires")
+    @Future(message = "La date de départ doit être dans le futur")
     private LocalDateTime departureTime;
+
+    @Min(value = 1, message = "Le nombre de places doit être au minimum 1")
+    @Max(value = 8, message = "Le nombre de places ne peut pas dépasser 8")
     private int totalSeats;
+
     private boolean isRegular;
 
     // Constructeur vide

@@ -43,11 +43,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
 
         // 3. Convertir notre Student en UserDetails (format attendu par Spring Security)
+        // - disabled : compte désactivé par un admin (enabled = false)
+        // - accountLocked : compte en attente de validation (approved = false)
         return User.builder()
                 .username(student.getUsername())
                 .password(student.getPassword())
                 .roles(student.getRole().replace("ROLE_", ""))  // Spring ajoute automatiquement "ROLE_"
                 .disabled(!student.isEnabled())
+                .accountLocked(!student.isApproved())  // Bloque les comptes non approuvés
                 .build();
     }
 }
