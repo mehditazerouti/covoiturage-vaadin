@@ -6,10 +6,11 @@
 Application de covoiturage développée avec Spring Boot et Vaadin, suivant une **architecture hexagonale** (Clean Architecture) avec système d'authentification et de réservation complets.
 
 ### 📊 Statistiques du projet
-- **82 fichiers Java** organisés en 4 couches (Domain, Application, Infrastructure, UI)
+- **85+ fichiers Java** organisés en 4 couches (Domain, Application, Infrastructure, UI)
 - **12 DTOs + 4 Mappers** pour une séparation complète des couches
 - **10 vues** (3 trip, 4 admin, 2 auth, 1 messaging) et **11 dialogs** réutilisables
 - **Architecture DTO à 100%** : sécurité maximale (password jamais exposé)
+- **Bean Validation JSR-303** : validation complète avec messages en français
 - **60 étudiants de test**, **120 trajets** et **80 réservations** générés automatiquement
 
 ## Fonctionnalités actuelles
@@ -24,6 +25,9 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
 - **Session management** : Sessions persistées en base MySQL (Spring Session JDBC)
 - **Compte admin** : Créé automatiquement au démarrage (admin/admin123)
 - **Codes whitelistés** : **60 codes pré-autorisés** (22405100 à 22405159) pour tests
+- **Contrôle d'accès complet** :
+  - `enabled=false` → compte désactivé (ne peut pas se connecter)
+  - `approved=false` → compte verrouillé en attente de validation (ne peut pas se connecter)
 
 ### ✅ Gestion des étudiants
 - **Annuaire** : Liste des étudiants avec avatars Vaadin
@@ -83,8 +87,10 @@ Application de covoiturage développée avec Spring Boot et Vaadin, suivant une 
   - Les réservations annulées ne bloquent pas une nouvelle réservation
 
 ### ✅ Messagerie Sécurisée (Phase 6 complète)
-- **Contexte sécurisé** : Système de messagerie strictement restreint aux covoitureurs
-  - Règle stricte : Un utilisateur ne peut contacter qu'une personne avec qui il partage un trajet (Passager ↔ Conducteur)
+- **Contexte sécurisé** : Système de messagerie avec règles différenciées
+  - **Utilisateurs** : Ne peuvent contacter que les personnes avec qui ils partagent un trajet (Passager ↔ Conducteur)
+  - **Admin** : Peut contacter **TOUS** les étudiants (support, communication)
+  - **Conversations bidirectionnelles** : Les utilisateurs peuvent répondre à l'admin
   - **Support d'historique** : Fonctionne même si la réservation est annulée (permet de gérer les imprévus)
 - **Interface style "App de chat"** :
   - Vue conversationnelle avec bulles de messages (alignement gauche/droite)
@@ -363,6 +369,31 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 
 ## Historique des développements
 
+### JSR-303 Bean Validation (10/12/2025) ✅
+- **Implémenté** : Validation complète des données avec annotations JSR-303/380
+- **Dépendance ajoutée** : `spring-boot-starter-validation` dans pom.xml
+- **DTOs annotés** :
+  - `StudentCreateDTO` : @NotBlank, @Email, @Size, @Pattern sur tous les champs
+  - `TripCreateDTO` : @NotBlank, @NotNull, @Size, @Min, @Max, @Future
+- **Entités annotées** :
+  - `Student` : Validation complète (name, email, studentCode, username, password, role, avatar)
+  - `Trip` : Adresses, dates, places avec contraintes
+  - `Message` : Contenu, participants, dates obligatoires
+- **Messages en français** : Tous les messages d'erreur personnalisés
+- **Fichiers modifiés** : pom.xml, StudentCreateDTO, TripCreateDTO, Student, Trip, Message
+
+### Messagerie Admin + Correction bug "approved" (10/12/2025) ✅
+- **Messagerie Admin** :
+  - L'admin peut désormais contacter **TOUS** les étudiants
+  - Les conversations sont **bidirectionnelles** (l'utilisateur peut répondre à l'admin)
+  - Méthode `MessageService.canMessageUser()` mise à jour avec règles différenciées
+  - Méthode `MessageService.getContactableUsers()` retourne tous les étudiants si admin
+- **Correction bug "approved"** :
+  - **Problème** : Un étudiant avec `approved=false` pouvait toujours se connecter
+  - **Solution** : Ajout de `.accountLocked(!student.isApproved())` dans `UserDetailsServiceImpl`
+  - Les comptes non approuvés sont maintenant verrouillés (ne peuvent pas se connecter)
+- **Fichiers modifiés** : MessageService.java, UserDetailsServiceImpl.java
+
 ### Système de Messagerie Sécurisée (09/12/2025) ✅
 - **Implémenté** : Système complet de chat Driver ↔ Passenger
 - **Sécurité Métier** :
@@ -551,19 +582,17 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 - ✅ **Architecture hexagonale parfaite** : Séparation stricte des couches (Domain → Application → Infrastructure → UI)
 - ✅ **DTO architecture à 100%** : Services retournent EXCLUSIVEMENT des DTOs, password jamais exposé
 - ✅ **Sécurité robuste** : BCrypt (strength 10), rate limiting (5 tentatives/15 min), cascade deletes
+- ✅ **Bean Validation JSR-303** : Annotations de validation sur DTOs et entités avec messages en français
 - ✅ **Code propre** : Aucun code dupliqué majeur, imports nettoyés, organisation par packages
 - ✅ **Documentation complète** : Javadoc, commentaires
 - ✅ **Transaction management** : @Transactional correctement appliqué (readOnly pour lectures)
 
 **Points d'amélioration identifiés** :
 
-1. **Haute priorité** :
-   - ⚠️ **Bean Validation manquant** : Pas de JSR-303 (@NotBlank, @Email, @Size)
-
-2. **Priorité moyenne** :
+1. **Priorité moyenne** :
    - 🎨 **Hiérarchie d'exceptions** : Utilise IllegalArgumentException générique
 
-3. **Priorité basse** :
+2. **Priorité basse** :
    - 🔧 **Code boilerplate** : Configuration grids répétée (GridFactory utilitaire possible)
    - 📸 **Avatars limités** : 3 icônes Vaadin (upload d'images prévu)
 
@@ -576,7 +605,8 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 
 ### Recommandations techniques
 
-1. **Implémenter JSR-303 Bean Validation** (effort moyen, améliore qualité)
+1. ✅ **JSR-303 Bean Validation** : IMPLÉMENTÉ (10/12/2025)
+2. **Hiérarchie d'exceptions personnalisée** : Créer des exceptions métier dédiées
 
 ## 🎯 Prochaines étapes prioritaires
 
@@ -608,11 +638,17 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
   - Vérification ancien mot de passe, confirmation, longueur minimale (6 caractères)
   - Réutilisable par ProfileDialog et AdminStudentProfileDialog
 
-### 4. ⏳ Sécurité & Validation (En cours)
+### 4. ✅ Sécurité & Validation (TERMINÉ 10/12/2025)
 - **Bean Validation JSR-303** : Annotations sur DTOs et entités
-  - `@NotBlank`, `@Email`, `@Size`, `@Min`, `@Max`, `@Pattern`
-  - Validation automatique côté serveur avec Vaadin Binder
+  - `@NotBlank`, `@Email`, `@Size`, `@Min`, `@Max`, `@Pattern`, `@Future`, `@NotNull`
+  - Validation automatique côté serveur
   - Messages d'erreur personnalisés en français
+- **Fichiers annotés** :
+  - `StudentCreateDTO` : name, email, studentCode, username, password
+  - `TripCreateDTO` : departureAddress, destinationAddress, departureTime, totalSeats
+  - `Student` (entité) : Toutes les contraintes métier
+  - `Trip` (entité) : Adresses, dates, places
+  - `Message` (entité) : Contenu, participants, dates
 
 ### 5. 🎨 Design System A Améliorer
 - **Clean Card** : Améliorer les vues pour vraiment avoir le style Clean Card (comme AirBnB ou d'autres apps modernes)
@@ -696,28 +732,32 @@ Utilisez un client MySQL (MySQL Workbench, DBeaver, phpMyAdmin) :
 
 ## 📈 État du projet
 
-**Dernière analyse complète** : 5 décembre 2025
-**Score global** : 9.5/10
+**Dernière analyse complète** : 10 décembre 2025
+**Score global** : 9.8/10
 **Maturité** : MVP Production-Ready
 
 ### Résumé technique
-- **65 fichiers Java** sur 4 couches architecturales
-- **7 DTOs + 3 Mappers** (architecture DTO à 100%)
-- **9 vues + 9 dialogs** organisés en 5 packages
+- **85+ fichiers Java** sur 4 couches architecturales
+- **12 DTOs + 4 Mappers** (architecture DTO à 100%)
+- **10 vues + 11 dialogs** organisés en 5 packages
 - **60 étudiants de test + 120 trajets + 80 réservations** générés automatiquement
 - **Rate limiting** : 5 tentatives / 15 min de blocage
 - **Sécurité** : BCrypt (strength 10), cascade deletes, DTO sans password
+- **Bean Validation** : JSR-303/380 sur DTOs et entités
 
 ### Fonctionnalités complètes
-✅ Authentification & Whitelist
+✅ Authentification & Whitelist (enabled + approved bloquent la connexion)
 ✅ Gestion trajets (CRUD, recherche avancée, réguliers/ponctuels)
 ✅ Système de réservation (booking, cancel, statuts)
 ✅ Administration complète (étudiants, profils, validation)
 ✅ Profil utilisateur avec statistiques et avatar
 ✅ Dialog admin pour gestion étudiants (enabled, approved, reset password)
+✅ Messagerie sécurisée (admin peut contacter tous, conversations bidirectionnelles)
+✅ Bean Validation JSR-303 (DTOs + entités)
 
 ### Prochaines priorités
-1. JSR-303 Bean Validation
+1. Amélioration du Design System (Clean Card style)
+2. Upload d'avatar personnalisé
 
 ---
 
