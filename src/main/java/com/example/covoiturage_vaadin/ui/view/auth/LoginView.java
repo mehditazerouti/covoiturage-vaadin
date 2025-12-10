@@ -29,7 +29,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @AnonymousAllowed
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final TextField usernameField = new TextField("Nom d'utilisateur");
+    private final TextField usernameField = new TextField("Code étudiant");
     private final PasswordField passwordField = new PasswordField("Mot de passe");
     private final Button loginButton = new Button("Se connecter");
 

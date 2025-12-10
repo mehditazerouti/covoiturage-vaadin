@@ -18,10 +18,12 @@ import java.util.stream.Collectors;
 /**
  * Service de messagerie entre utilisateurs.
  *
- * Règle de sécurité principale :
- * Deux utilisateurs peuvent s'envoyer des messages SI ET SEULEMENT SI
- * ils ont partagé un covoiturage (l'un conducteur, l'autre passager).
- * Les réservations annulées comptent dans l'historique.
+ * Règles de sécurité :
+ * - ADMIN : Peut contacter TOUS les utilisateurs (support, communication)
+ * - UTILISATEURS : Peuvent s'envoyer des messages SI ET SEULEMENT SI
+ *   ils ont partagé un covoiturage (l'un conducteur, l'autre passager).
+ * - Les réservations annulées comptent dans l'historique.
+ * - Les conversations avec l'admin sont bidirectionnelles (l'utilisateur peut répondre).
  */
 @Service
 @Transactional(readOnly = true)
@@ -207,11 +209,49 @@ public class MessageService {
 
     /**
      * Récupère la liste des utilisateurs contactables.
-     * Un utilisateur est contactable s'il a partagé un covoiturage avec l'utilisateur connecté.
+     *
+     * Règles :
+     * - ADMIN : Peut contacter TOUS les étudiants (sauf lui-même)
+     * - UTILISATEUR : Peut contacter les personnes avec qui il a partagé un covoiturage
+     *
      * @return Liste de ContactDTO
      */
     public List<ContactDTO> getContactableUsers() {
         Long currentUserId = getCurrentUserId();
+
+        // Si l'utilisateur est ADMIN → retourner tous les étudiants (sauf lui-même)
+        if (securityContext.hasRole("ADMIN")) {
+            return getAllStudentsAsContacts(currentUserId);
+        }
+
+        // Sinon, logique normale : seulement les covoitureurs
+        return getCovoitureursAsContacts(currentUserId);
+    }
+
+    /**
+     * Récupère tous les étudiants comme contacts (pour l'admin).
+     * Exclut l'admin lui-même et les autres admins.
+     */
+    private List<ContactDTO> getAllStudentsAsContacts(Long currentUserId) {
+        return studentService.getAllStudents().stream()
+                .filter(student -> !student.getId().equals(currentUserId)) // Exclure soi-même
+                .filter(student -> !"ROLE_ADMIN".equals(student.getRole())) // Exclure les admins
+                .filter(student -> student.isApproved() && student.isEnabled()) // Seulement les actifs
+                .map(student -> {
+                    // Récupérer l'entité pour utiliser le mapper
+                    return studentService.getStudentEntityById(student.getId())
+                            .map(entity -> messageMapper.toContactDTO(entity, "Étudiant"))
+                            .orElse(null);
+                })
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ContactDTO::getName))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Récupère les covoitureurs comme contacts (logique standard pour utilisateurs).
+     */
+    private List<ContactDTO> getCovoitureursAsContacts(Long currentUserId) {
         Set<Long> contactableUserIds = new HashSet<>();
         Map<Long, String> tripContexts = new HashMap<>();
 
@@ -242,6 +282,16 @@ public class MessageService {
             }
         }
 
+        // 3. Ajouter les admins avec qui on a une conversation existante (pour pouvoir répondre)
+        List<Conversation> myConversations = conversationRepository.findVisibleByParticipantId(currentUserId);
+        for (Conversation conv : myConversations) {
+            Student otherParticipant = conv.getOtherParticipant(currentUserId);
+            if (otherParticipant != null && "ROLE_ADMIN".equals(otherParticipant.getRole())) {
+                contactableUserIds.add(otherParticipant.getId());
+                tripContexts.putIfAbsent(otherParticipant.getId(), "Admin");
+            }
+        }
+
         // Convertir en ContactDTO
         return contactableUserIds.stream()
                 .map(userId -> studentService.getStudentEntityById(userId)
@@ -254,6 +304,12 @@ public class MessageService {
 
     /**
      * Vérifie si l'utilisateur connecté peut envoyer un message à un autre utilisateur.
+     *
+     * Règles :
+     * - Un admin peut contacter TOUT LE MONDE
+     * - Un utilisateur peut répondre à un admin (s'il existe une conversation)
+     * - Un utilisateur peut contacter un autre utilisateur s'ils ont partagé un covoiturage
+     *
      * @param targetUserId ID de l'utilisateur cible
      * @return true si la messagerie est autorisée
      */
@@ -265,7 +321,22 @@ public class MessageService {
             return false;
         }
 
-        // 1. Vérifier si targetUser est conducteur d'un trajet où currentUser a une réservation
+        // 1. Si l'utilisateur courant est ADMIN → peut contacter tout le monde
+        if (securityContext.hasRole("ADMIN")) {
+            return true;
+        }
+
+        // 2. Si la cible est ADMIN et qu'une conversation existe → peut répondre
+        Student targetUser = studentService.getStudentEntityById(targetUserId).orElse(null);
+        if (targetUser != null && "ROLE_ADMIN".equals(targetUser.getRole())) {
+            // Vérifier s'il existe déjà une conversation avec cet admin
+            Optional<Conversation> existingConversation = conversationRepository.findByParticipants(currentUserId, targetUserId);
+            if (existingConversation.isPresent()) {
+                return true;
+            }
+        }
+
+        // 3. Vérifier si targetUser est conducteur d'un trajet où currentUser a une réservation
         List<Booking> myBookings = bookingRepository.findByStudentId(currentUserId);
         boolean targetIsMyDriver = myBookings.stream()
                 .anyMatch(b -> b.getTrip().getDriver().getId().equals(targetUserId));
@@ -273,7 +344,7 @@ public class MessageService {
             return true;
         }
 
-        // 2. Vérifier si currentUser est conducteur d'un trajet où targetUser a une réservation
+        // 4. Vérifier si currentUser est conducteur d'un trajet où targetUser a une réservation
         List<Trip> myTrips = tripRepository.findByDriverId(currentUserId);
         for (Trip trip : myTrips) {
             if (bookingRepository.existsByTripIdAndStudentId(trip.getId(), targetUserId)) {
